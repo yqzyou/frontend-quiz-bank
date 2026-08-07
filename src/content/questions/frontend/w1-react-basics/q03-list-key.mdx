@@ -1,0 +1,45 @@
+---
+id: fe-w1-q03
+title: "React 列表 key 的作用"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: basic
+type: multi-choice
+tags: [react, list, key, reconciliation]
+source: handwritten
+status: reviewed
+reviewer: yasser
+language: zh
+last_updated: 2026-08-07
+---
+
+## 题目
+关于 React 列表渲染中的 `key` 属性，下面哪些说法是**正确**的？（多选）
+
+## 选项
+A. key 帮助 React 识别哪些元素发生了变化，应当是稳定的、唯一的 [correct]
+B. 使用数组索引作为 key 在大多数业务场景下都是最佳选择
+C. 当列表项会重排、插入或删除时，使用数组索引作为 key 可能导致 state 错乱 [correct]
+D. key 只需要在兄弟节点中唯一，全局不必唯一 [correct]
+
+## 解析
+**A 正确**：key 是 React reconciliation 的提示信号，用于在 diff 中匹配前后两次树的对应节点。
+
+**B 错误**：索引作为 key 只在「列表纯展示、无重排、无 state」时勉强可用。一旦列表项有自身 state（如表单输入），重排会让 state 跟着 key 错位。
+
+**C 正确**：插入/删除时索引会变，React 会按 key 匹配，索引 key 会让组件实例指向错误的数据，造成输入框内容串台等 bug。
+
+**D 正确**：key 只在同一个父节点下的兄弟之间比较，不同列表可以复用相同的 key。
+
+```jsx
+// 反例：用 index 作为 key，删第一项时所有输入框错位
+{items.map((item, i) => <input key={i} defaultValue={item.text} />)}
+
+// 正例：用稳定 ID
+{items.map(item => <input key={item.id} defaultValue={item.text} />)}
+```
+
+## 参考
+- [React Docs: Rendering Lists — Why does key matter?](https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key)
+- [Index as a key is an anti-pattern](https://robinpokorny.com/blog/index-as-a-key-is-an-anti-pattern/)

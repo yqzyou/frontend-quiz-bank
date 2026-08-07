@@ -1,0 +1,55 @@
+---
+id: fe-w1-q01
+title: "useState 闭包陷阱"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: intermediate
+type: choice
+tags: [react, hooks, use-state, closure]
+source: handwritten
+status: reviewed
+reviewer: yasser
+language: zh
+related: [fe-w1-q02]
+last_updated: 2026-08-07
+---
+
+## 题目
+下面这段代码点击 3 次按钮后，`count` 会是多少？
+
+```jsx
+function Counter() {
+  const [count, setCount] = useState(0);
+  const handleClick = () => {
+    setCount(count + 1);
+    setCount(count + 1);
+    setCount(count + 1);
+  };
+  return <button onClick={handleClick}>{count}</button>;
+}
+```
+
+## 选项
+A. 3 ✓
+B. 1
+C. 0
+D. 报错
+
+## 解析
+三次 `setCount(count + 1)` 使用的都是同一个闭包变量 `count`（值为 0），所以三次都等价于 `setCount(0 + 1)`，最终结果为 1。
+
+如果希望基于上一次的 state 更新，必须使用函数式更新：
+
+```jsx
+setCount(prev => prev + 1);
+setCount(prev => prev + 1);
+setCount(prev => prev + 1);
+// 此时 count 才会是 3
+```
+
+这是 React 函数式组件最常见的「闭包陷阱」：每次渲染都会创建新的 `handleClick`，捕获当前渲染的 `count` 快照。
+
+## 参考
+- [React Docs: Queueing a Series of State Updates](https://react.dev/learn/queueing-a-series-of-state-updates)
+- [Dan Abramov — A Complete Guide to useEffect](https://overreacted.io/a-complete-guide-to-useeffect/)

@@ -1,0 +1,65 @@
+---
+id: fe-w1-q02
+title: "useEffect 依赖项数组"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: intermediate
+type: choice
+tags: [react, hooks, use-effect]
+source: handwritten
+status: reviewed
+reviewer: yasser
+language: zh
+related: [fe-w1-q01, fe-w1-q05]
+last_updated: 2026-08-07
+---
+
+## 题目
+下面这段代码会发生什么？
+
+```jsx
+function Profile({ userId }) {
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    fetchUser(userId).then(setUser);
+  }, []); // 空依赖数组
+
+  return <div>{user?.name}</div>;
+}
+```
+
+## 选项
+A. 仅在首次挂载时 fetchUser，userId 后续变化也不会重新获取
+B. 每次渲染都会重新调用 fetchUser ✓
+C. 仅在 userId 变化时调用 fetchUser
+D. 直接报错：未声明的依赖
+
+## 解析
+空依赖数组 `[]` 表示 effect **只在挂载时运行一次**。这意味着 effect 闭包捕获的 `userId` 是首次挂载时的值；如果 props.userId 后续变化，effect 不会重新执行，会显示陈旧数据。
+
+正确写法是显式声明依赖：
+
+```jsx
+useEffect(() => {
+  fetchUser(userId).then(setUser);
+}, [userId]);
+```
+
+更严谨的版本还需要处理 cleanup（避免竞态）：
+
+```jsx
+useEffect(() => {
+  let cancelled = false;
+  fetchUser(userId).then(data => {
+    if (!cancelled) setUser(data);
+  });
+  return () => { cancelled = true; };
+}, [userId]);
+```
+
+> React 19 的 `use()` 与 Effect 配合 Suspense 可以让数据获取更声明式，但仍然推荐显式声明依赖。
+
+## 参考
+- [React Docs: Synchronizing with Effects](https://react.dev/learn/synchronizing-with-effects)
+- [react-hooks/exhaustive-deps ESLint 规则](https://github.com/facebook/react/issues/14920)

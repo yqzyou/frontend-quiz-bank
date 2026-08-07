@@ -1,0 +1,58 @@
+---
+id: fe-w1-q05
+title: "useMemo / useCallback 的使用时机"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: advanced
+type: choice
+tags: [react, hooks, performance, use-memo, use-callback]
+source: handwritten
+status: reviewed
+reviewer: yasser
+language: zh
+related: [fe-w1-q02]
+last_updated: 2026-08-07
+---
+
+## 题目
+下面关于 `useMemo` / `useCallback` 的说法，**最准确**的是哪一个？
+
+## 选项
+A. 应该对每个函数和每个对象都用 `useMemo` / `useCallback` 包一层，让性能最大化
+B. 它们能让任意函数变成纯函数，消除副作用
+C. 主要用于稳定引用以便作为子组件 prop 或 effect 依赖；如果计算成本不高，往往不值得使用 ✓
+D. React 19 已废弃这两个 Hook
+
+## 解析
+**A 错误**：盲目包一层反而增加开销 —— Hook 调用本身要分配数组和依赖比对，对简单值/小函数得不偿失。
+
+**B 错误**：两个 Hook 不改变函数纯度，只是缓存返回值。
+
+**C 正确**：核心使用场景有两个：
+1. **稳定引用传给 `React.memo` 子组件**：避免因父组件重渲染让子组件无故重渲染。
+2. **稳定引用作为 effect 依赖**：避免 effect 因为依赖引用变化而反复运行。
+
+**D 错误**：React 19 没有废弃这两个 Hook，但 **React Compiler**（React 19 实验性）能自动 memoize，未来手动使用会减少。
+
+```jsx
+// 反例：包了一层但毫无意义
+const handleClick = useCallback(() => doSomething(), []);
+<Child onClick={handleClick} />
+// 若 Child 没 memo，包了也白发
+
+// 正例：Child 用 React.memo 包过
+const MemoChild = React.memo(Child);
+const handleClick = useCallback(() => doSomething(), []);
+<MemoChild onClick={handleClick} />
+```
+
+**判断标准**（来自 React 官方）：
+- 子组件是否 `React.memo`？effect 是否依赖这个引用？
+- 计算成本是否明显大于 Hook 本身的开销？
+- 不确定时，先不要 memo，等性能分析发现瓶颈再加。
+
+## 参考
+- [React Docs: You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect)
+- [React Docs: Performance — useMemo](https://react.dev/reference/react/useMemo)
+- [React Compiler 实验性文档](https://react.dev/learn/react-compiler)
