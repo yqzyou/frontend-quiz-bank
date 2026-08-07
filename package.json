@@ -10,7 +10,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "echo \"Tests configured in Task 4\" && exit 0",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "astro": "astro"
   },
   "dependencies": {
@@ -27,6 +30,9 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "typescript": "^6.0.3"
+    "@types/node": "^26.1.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }
