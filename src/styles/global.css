@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: oklch(98% 0 0);
+  --color-surface: oklch(100% 0 0);
+  --color-text: oklch(18% 0 0);
+  --color-muted: oklch(45% 0 0);
+  --color-accent: oklch(68% 0.21 250);
+  --color-success: oklch(70% 0.18 145);
+  --color-warn: oklch(75% 0.18 75);
+  --color-danger: oklch(65% 0.22 25);
+
+  --color-status-reviewed: oklch(70% 0.18 145);
+  --color-status-draft: oklch(75% 0.18 75);
+  --color-status-needs-review: oklch(65% 0.22 25);
+
+  --text-base: clamp(1rem, 0.92rem + 0.4vw, 1.125rem);
+  --text-hero: clamp(2.5rem, 1rem + 5vw, 5rem);
+
+  --space-section: clamp(4rem, 3rem + 5vw, 8rem);
+  --radius-card: 12px;
+  --radius-pill: 999px;
+
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: oklch(15% 0 0);
+    --color-surface: oklch(20% 0 0);
+    --color-text: oklch(95% 0 0);
+    --color-muted: oklch(70% 0 0);
+  }
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.status-badge--reviewed {
+  background: var(--color-status-reviewed);
+  color: white;
+}
+.status-badge--draft {
+  background: var(--color-status-draft);
+  color: oklch(20% 0 0);
+}
+.status-badge--needs-review {
+  background: var(--color-status-needs-review);
+  color: white;
+}
