@@ -1,0 +1,148 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CategoryTabs from '../../components/CategoryTabs.astro';
+import { loadAllQuestions } from '@lib/content-loader';
+
+const url = Astro.url;
+const requestedCategory = url.searchParams.get('category') ?? 'all';
+const requestedStatus = url.searchParams.get('status') ?? 'all';
+const requestedWeek = url.searchParams.get('week') ?? 'all';
+
+const all = loadAllQuestions();
+const weeks = [...new Set(all.map((q) => q.frontmatter.week))].sort((a, b) => a - b);
+const statuses = ['reviewed', 'draft', 'needs-review'];
+
+let filtered = all;
+if (requestedCategory !== 'all') {
+  filtered = filtered.filter((q) => q.frontmatter.category === requestedCategory);
+}
+if (requestedStatus !== 'all') {
+  filtered = filtered.filter((q) => q.frontmatter.status === requestedStatus);
+}
+if (requestedWeek !== 'all') {
+  filtered = filtered.filter((q) => String(q.frontmatter.week) === requestedWeek);
+}
+
+const activeTab: 'frontend' | 'web3' | 'remote' | 'all' =
+  requestedCategory === 'frontend' || requestedCategory === 'web3' || requestedCategory === 'remote'
+    ? requestedCategory
+    : 'all';
+
+const statusStyle: Record<string, string> = {
+  reviewed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+  draft: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+  'needs-review': 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
+};
+
+const categoryStyle: Record<string, string> = {
+  frontend: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300',
+  web3: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+  remote: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+};
+
+const total = filtered.length;
+---
+
+<BaseLayout title={`题库 · 前端题库`} description={`共 ${all.length} 道题，按方向 / 状态 / 周次筛选。`}>
+  <section class="py-4">
+    <header class="mb-6">
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">题库</h1>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        共 {all.length} 道题 · 当前筛选 {total} 道
+      </p>
+    </header>
+
+    <CategoryTabs active={activeTab} />
+
+    <form
+      method="GET"
+      action="/questions"
+      class="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900"
+    >
+      <input type="hidden" name="category" value={requestedCategory} />
+      <label class="flex items-center gap-2">
+        <span class="text-slate-500">状态</span>
+        <select
+          name="status"
+          class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+        >
+          <option value="all" selected={requestedStatus === 'all'}>全部</option>
+          {statuses.map((s) => (
+            <option value={s} selected={requestedStatus === s}>{s}</option>
+          ))}
+        </select>
+      </label>
+      <label class="flex items-center gap-2">
+        <span class="text-slate-500">周次</span>
+        <select
+          name="week"
+          class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+        >
+          <option value="all" selected={requestedWeek === 'all'}>全部</option>
+          {weeks.map((w) => (
+            <option value={w} selected={requestedWeek === String(w)}>W{w}</option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="submit"
+        class="rounded-lg bg-slate-900 px-4 py-1.5 font-medium text-white dark:bg-white dark:text-slate-900"
+      >
+        应用
+      </button>
+      <a
+        href="/questions"
+        class="rounded-lg border border-slate-300 px-4 py-1.5 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+      >
+        清空
+      </a>
+    </form>
+
+    {
+      total === 0 ? (
+        <p class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+          没有符合条件的题目。试试清空筛选条件？
+        </p>
+      ) : (
+        <ul class="grid gap-3">
+          {filtered.map((q) => (
+            <li>
+              <a
+                href={`/questions/${q.slug}`}
+                class="group flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-700 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div class="flex-1">
+                  <div class="mb-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span class:list={['rounded-full px-2 py-0.5 font-medium', categoryStyle[q.frontmatter.category]]}>
+                      {q.frontmatter.category}
+                    </span>
+                    <span class="text-slate-500">W{q.frontmatter.week} · {q.frontmatter.sub_category}</span>
+                    <span class:list={['rounded-full px-2 py-0.5 font-medium', statusStyle[q.frontmatter.status]]}>
+                      {q.frontmatter.status}
+                    </span>
+                    <span class="text-slate-500">· {q.frontmatter.difficulty}</span>
+                    <span class="text-slate-500">· {q.frontmatter.type}</span>
+                  </div>
+                  <h2 class="text-lg font-semibold text-slate-900 group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">
+                    {q.frontmatter.title}
+                  </h2>
+                  <p class="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{q.question}</p>
+                  {q.frontmatter.tags.length > 0 && (
+                    <ul class="mt-2 flex flex-wrap gap-1 text-xs text-slate-500">
+                      {q.frontmatter.tags.map((t) => (
+                        <li class="rounded bg-slate-100 px-2 py-0.5 dark:bg-slate-800">#{t}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div class="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                  练习 →
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+</BaseLayout>

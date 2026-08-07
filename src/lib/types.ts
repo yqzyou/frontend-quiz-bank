@@ -29,13 +29,18 @@ export interface ChoiceOption {
   correct: boolean;
 }
 
+export interface QuestionReference {
+  text: string;
+  url: string;
+}
+
 export interface ParsedQuestion {
   frontmatter: Frontmatter;
   question: string;
   options: ChoiceOption[];
   explanation: string;
   referenceAnswer?: string;
-  references?: string[];
+  references?: QuestionReference[];
   slug: string;
 }
 

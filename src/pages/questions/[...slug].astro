@@ -1,0 +1,132 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import QuizCard from '../../components/islands/QuizCard.tsx';
+import { loadAllQuestions, loadQuestionBySlug } from '@lib/content-loader';
+
+export async function getStaticPaths() {
+  const all = loadAllQuestions();
+  return all.map((q) => ({
+    params: { slug: q.slug },
+    props: { question: q },
+  }));
+}
+
+const { question } = Astro.props;
+
+// Hydrate via the same loader so frontmatter normalization is identical
+const full = loadQuestionBySlug(question.slug);
+if (!full) {
+  return Astro.redirect('/404');
+}
+
+const fm = full.frontmatter;
+const relatedQuestions = (fm.related ?? [])
+  .map((id) => loadAllQuestions().find((q) => q.frontmatter.id === id))
+  .filter((q): q is NonNullable<typeof q> => Boolean(q));
+
+const statusStyle: Record<string, string> = {
+  reviewed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+  draft: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+  'needs-review': 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
+};
+
+const categoryStyle: Record<string, string> = {
+  frontend: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300',
+  web3: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+  remote: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+};
+
+const typeLabel: Record<string, string> = {
+  choice: '单选',
+  'multi-choice': '多选',
+  interview: '简答',
+  code: '代码',
+};
+---
+
+<BaseLayout title={`${fm.title} · 前端题库`} description={full.question.slice(0, 160)}>
+  <nav aria-label="面包屑" class="mb-4 text-sm text-slate-500 dark:text-slate-400">
+    <a href="/" class="hover:underline">首页</a>
+    <span class="mx-2" aria-hidden="true">/</span>
+    <a href="/questions" class="hover:underline">题库</a>
+    <span class="mx-2" aria-hidden="true">/</span>
+    <a href={`/questions?category=${fm.category}`} class="hover:underline">{fm.category}</a>
+    <span class="mx-2" aria-hidden="true">/</span>
+    <span class="text-slate-700 dark:text-slate-300">{fm.title}</span>
+  </nav>
+
+  <div class="mb-4 flex flex-wrap items-center gap-2 text-xs">
+    <span class:list={['rounded-full px-2 py-0.5 font-medium', categoryStyle[fm.category]]}>{fm.category}</span>
+    <span class="text-slate-500">W{fm.week} · {fm.sub_category}</span>
+    <span class:list={['rounded-full px-2 py-0.5 font-medium', statusStyle[fm.status]]}>{fm.status}</span>
+    <span class="text-slate-500">· {fm.difficulty}</span>
+    <span class="text-slate-500">· {typeLabel[fm.type] ?? fm.type}</span>
+    <span class="text-slate-500">· 更新于 {fm.last_updated}</span>
+  </div>
+
+  <QuizCard question={full} slug={question.slug} client:load />
+
+  {
+    fm.tags.length > 0 && (
+      <section class="mt-8">
+        <h2 class="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">标签</h2>
+        <ul class="flex flex-wrap gap-2 text-sm">
+          {fm.tags.map((t) => (
+            <li class="rounded-lg bg-slate-100 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              #{t}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    full.references && full.references.length > 0 && (
+      <section class="mt-8">
+        <h2 class="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">参考</h2>
+        <ul class="space-y-1 text-sm">
+          {full.references.map((r) => (
+            <li>
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                {r.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    relatedQuestions.length > 0 && (
+      <section class="mt-8">
+        <h2 class="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">相关题目</h2>
+        <ul class="grid gap-3 sm:grid-cols-2">
+          {relatedQuestions.map((rq) => (
+            <li>
+              <a
+                href={`/questions/${rq.slug}`}
+                class="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-700"
+              >
+                <div class="mb-1 text-xs text-slate-500">
+                  {rq.frontmatter.category} · W{rq.frontmatter.week}
+                </div>
+                <div class="font-medium text-slate-900 dark:text-slate-100">{rq.frontmatter.title}</div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <nav class="mt-12 flex items-center justify-between text-sm">
+    <a href="/questions" class="text-slate-600 hover:underline dark:text-slate-300">← 返回列表</a>
+  </nav>
+</BaseLayout>

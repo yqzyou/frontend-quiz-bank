@@ -72,6 +72,17 @@ function normalizeDateString(value: unknown): string | null {
   return null;
 }
 
+const MD_LINK_RE = /^\s*[-*]\s+\[(.+?)\]\((https?:\/\/[^\s)]+)\)\s*$/;
+
+function parseMarkdownLink(line: string): { text: string; url: string } {
+  const m = line.match(MD_LINK_RE);
+  if (m) return { text: m[1].trim(), url: m[2] };
+  // Fallback: a bare URL wrapped in a list item
+  const bare = line.replace(/^\s*[-*]\s+/, '').trim();
+  if (/^https?:\/\//.test(bare)) return { text: bare, url: bare };
+  return { text: bare, url: bare };
+}
+
 function validateFrontmatter(fm: Record<string, unknown>, filePath: string): Frontmatter {
   for (const field of REQUIRED_FIELDS) {
     if (!(field in fm) || fm[field] === undefined || fm[field] === null) {
@@ -139,7 +150,11 @@ export function parseQuestionFile(filePath: string): ParsedQuestion {
   const referenceAnswer = extractSection(content, '参考答案') || undefined;
   const referencesBlock = extractSection(content, '参考');
   const references = referencesBlock
-    ? referencesBlock.split('\n').map(l => l.trim()).filter(l => l.startsWith('-'))
+    ? referencesBlock
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.startsWith('-'))
+        .map(parseMarkdownLink)
     : undefined;
 
   let options: ChoiceOption[] = [];

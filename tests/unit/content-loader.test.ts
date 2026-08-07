@@ -33,6 +33,10 @@ describe('parseQuestionFile', () => {
     expect(result.referenceAnswer).toContain('reconciliation');
     expect(result.references).toBeDefined();
     expect(result.references?.length).toBe(2);
+    expect(result.references?.[0]).toEqual({
+      text: 'React Docs',
+      url: 'https://react.dev',
+    });
   });
 
   it('throws on missing required frontmatter field', () => {
