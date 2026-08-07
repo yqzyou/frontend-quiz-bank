@@ -9,6 +9,8 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, 'src'),
       '@lib': resolve(__dirname, 'src/lib'),
+      '@components': resolve(__dirname, 'src/components'),
+      '@islands': resolve(__dirname, 'src/components/islands'),
     },
     extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.json'],
   },
@@ -19,12 +21,17 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['tests/unit/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/lib/**/*.ts'],
+      include: ['src/lib/**/*.ts', 'src/components/**/*.tsx'],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },
+    environmentMatchGlobs: [
+      ['tests/unit/**/*.dom.test.tsx', 'happy-dom'],
+      ['tests/unit/components/**', 'happy-dom'],
+    ],
+    setupFiles: ['tests/setup.ts'],
   },
 });
