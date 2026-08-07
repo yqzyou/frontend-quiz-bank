@@ -1,0 +1,71 @@
+---
+id: web3-w1-q05
+title: "ethers.js vs viem：新一代 dApp 的选型"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: advanced
+type: choice
+tags: [web3, ethers, viem, tooling]
+source: handwritten
+status: draft
+language: zh
+last_updated: 2026-08-07
+---
+
+## 题目
+对于一个**全新的** React/Next.js dApp，下面关于选择 ethers.js v6 还是 viem 的说法，最准确的是？
+
+## 选项
+A. ethers.js 因为资历更老，文档更全，永远是首选
+B. viem 拥有更小的 bundle、更好的 TypeScript 体验，且搭配 wagmi 与 TanStack Query 自然；新项目优先考虑 viem ✓
+C. viem 不支持 EIP-712 和 EIP-1559，所以严肃项目仍要选 ethers
+D. 两者都不能在浏览器使用，需要用 web3.js
+
+## 解析
+**A 错误**：成熟度不等于最优。「老 + 文档全」在快速演进的 Web3 里反而是技术债信号。
+
+**B 正确**（社区共识）：
+- **Bundle size**：viem tree-shaking 后约 35-50kb（gzip），ethers v6 约 100-150kb。
+- **TypeScript 体验**：viem 是 TS-first，ABI 自动推导函数签名、参数类型、返回类型。ethers v6 改善但仍需 `as const` 与大量 cast。
+- **API 风格**：viem 把 `PublicClient` / `WalletClient` 分开，职责清晰；ethers 是 `Provider` + `Signer` 模型，更容易混淆。
+- **配套生态**：`wagmi`（v2 基于 viem）+ TanStack Query 是当前最成熟的 React 数据流方案。
+- **性能**：viem 在 ABI 编码/解码、bigInt 运算上普遍比 ethers 快 1.5x-3x。
+
+**C 错误**：viem 完整支持 EIP-712、EIP-1559、EIP-6963、ENS、L2。
+
+**D 错误**：两者都为浏览器设计，且都支持 Node。
+
+**何时仍选 ethers**：
+- 维护老代码（已经依赖 ethers v5/v6）。
+- 需要 Hardhat / Foundry 紧密集成（部分插件仅支持 ethers）。
+- 团队学习成本敏感，且对最新 TS 特性无感。
+
+**v6 vs v5（ethers）**：v6 重写了底层架构，API 与 v5 不兼容。从 v5 升级比换框架工作量不小，所以新项目里 viem 反而是更轻的负担。
+
+```ts
+// viem
+import { createPublicClient, http, parseEther } from 'viem';
+import { mainnet } from 'viem/chains';
+
+const client = createPublicClient({
+  chain: mainnet,
+  transport: http(),
+});
+const block = await client.getBlockNumber();
+```
+
+```ts
+// ethers v6
+import { ethers } from 'ethers';
+const provider = new ethers.JsonRpcProvider();
+const block = await provider.getBlockNumber();
+```
+
+代码量接近，但 viem 在 hooks 层（wagmi）和类型推导上明显更现代。
+
+## 参考
+- [viem 官方文档](https://viem.sh)
+- [wagmi.sh — React hooks for Ethereum](https://wagmi.sh)
+- [ethers.js v6 文档](https://docs.ethers.org/v6/)
+- [viem vs ethers — bundle size 基准](https://github.com/wevm/viem/blob/main/.benchmarks)

@@ -1,0 +1,66 @@
+---
+id: web3-w1-q04
+title: "读合约 vs 写合约：eth_call vs eth_sendTransaction"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: basic
+type: choice
+tags: [web3, rpc, ethers, viem]
+source: handwritten
+status: draft
+language: zh
+last_updated: 2026-08-07
+---
+
+## 题目
+下面哪种说法**正确**描述了 `eth_call` 和 `eth_sendTransaction` 的区别？
+
+## 选项
+A. `eth_call` 是同步的，`eth_sendTransaction` 是异步的
+B. `eth_call` 模拟合约调用但不修改状态，不需要签名；`eth_sendTransaction` 会修改链上状态，必须签名并广播 ✓
+C. `eth_call` 只能调用 view 函数，`eth_sendTransaction` 只能调用写函数
+D. `eth_call` 不消耗 gas，`eth_sendTransaction` 也不消耗 gas（如果失败）
+
+## 解析
+**A 错误**：两者在 JSON-RPC 层都是请求-响应模式。`eth_sendTransaction` 返回交易 hash 是异步的，但最终「上链」状态需要 polling/receipt。
+
+**B 正确**：
+- `eth_call` 在某个区块上**模拟执行**合约，不广播、不上链、不消耗 gas，可以读取状态或预估写函数结果。
+- `eth_sendTransaction` 会构造交易、签名、广播，触发共识，最终在区块里变更状态，扣除 gas。
+
+**C 错误**：
+- `eth_call` 可以调用任何函数（包括写函数），只是不会真的改状态。
+- `eth_sendTransaction` 也可以调用 view 函数，但会浪费 gas（很少这么做）。
+
+**D 错误**：失败的交易**也会消耗 gas**（至少付完 execution gas）。这是新手最大的认知盲区：失败的 tx 不是免费的。
+
+**前端实践**（viem）：
+
+```ts
+// 读：eth_call
+const balance = await client.readContract({
+  address: tokenAddress,
+  abi: erc20Abi,
+  functionName: 'balanceOf',
+  args: [address],
+});
+
+// 写：eth_sendTransaction（via wallet）
+const hash = await walletClient.writeContract({
+  address: tokenAddress,
+  abi: erc20Abi,
+  functionName: 'transfer',
+  args: [recipient, amount],
+});
+// 再用 publicClient.waitForTransactionReceipt({ hash }) 等待
+```
+
+**关键陷阱**：
+- 钱包客户端（walletClient）持有私钥，签名 + 发送。
+- 公共客户端（publicClient）只能读，不能签。
+- `writeContract` 内部经过 `eth_estimateGas` → `eth_sendTransaction`，任何一步都可能失败。
+
+## 参考
+- [Ethereum JSON-RPC — eth_call / eth_sendTransaction](https://ethereum.org/en/developers/docs/apis/json-rpc/)
+- [viem — readContract / writeContract](https://viem.sh/docs/contract/)

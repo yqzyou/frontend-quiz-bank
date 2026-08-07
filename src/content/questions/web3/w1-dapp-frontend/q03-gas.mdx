@@ -1,0 +1,62 @@
+---
+id: web3-w1-q03
+title: "EIP-1559 gas 模型：baseFee + priorityFee"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: intermediate
+type: interview
+tags: [web3, gas, eip-1559, interview]
+source: handwritten
+status: draft
+language: zh
+last_updated: 2026-08-07
+---
+
+## 题目
+请解释 EIP-1559 之后 Ethereum 的 gas 费模型，以及它解决了什么问题。
+
+## 解析
+EIP-1559（2021 年 London 升级）之前，gas 是纯拍卖模型：用户出价（gasPrice），矿工挑高的打包。这造成两个体验灾难：
+
+1. **价格剧烈波动**：网络拥堵时 price 飙升，空闲时暴跌。
+2. **过度竞价**：用户为了避免延迟，盲目加价，估算困难。
+
+## 参考答案
+**新模型**：
+
+```
+total fee = baseFee (协议销毁) + priorityFee (给验证者小费)
+```
+
+- `baseFee`：由协议根据上一个区块的 gas 使用率动态调整。区块满（>12.5M gas）→ baseFee +12.5%；区块空 → -12.5%。**用户无法直接设置 baseFee**。
+- `maxFeePerGas`：用户愿意支付的上限（baseFee + priorityFee 的天花板）。
+- `maxPriorityFeePerGas`：用户给验证者的小费（加速用）。
+
+实际成交价：`min(maxFeePerGas, baseFee + maxPriorityFeePerGas)`。协议销毁 baseFee，验证者只拿 priorityFee。
+
+**用户体验提升**：
+1. 大多数情况下 `baseFee` 已经够用，钱包能给出更准的预估。
+2. 用 `maxPriorityFeePerGas` 控制优先级，而不是反复重设 `gasPrice`。
+3. baseFee 销毁减少了通胀，长期价值捕获。
+
+**前端实现要点**：
+- 用 `eth_feeHistory`（`reward` percentile）估算合理的 priorityFee。
+- viem/wagmi 提供 `getGasPrice()` 和 `estimateFeesPerGas()`。
+- L2（Arbitrum、Optimism、Base、zkSync）大多沿用 EIP-1559 接口但语义略有不同（如 op-stack 的 L1 data fee 单独计算）。
+
+```ts
+import { parseGwei } from 'viem';
+const [baseFee, priorityFee] = await client.estimateFeesPerGas();
+const tx = {
+  to: '0x...',
+  maxFeePerGas: baseFee.maxFeePerGas + priorityFee.maxPriorityFeePerGas,
+  maxPriorityFeePerGas: priorityFee.maxPriorityFeePerGas,
+  type: 'eip1559',
+};
+```
+
+## 参考
+- [EIP-1559: Fee market change](https://eips.ethereum.org/EIPS/eip-1559)
+- [Vitalik — EIP-1559 FAQ](https://notes.ethereum.org/@vbuterin/eip-1559-faq)
+- [viem — Fee History](https://viem.sh/docs/actions/public/estimateFeesPerGas)

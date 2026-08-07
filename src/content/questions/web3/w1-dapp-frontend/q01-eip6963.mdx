@@ -1,0 +1,57 @@
+---
+id: web3-w1-q01
+title: "EIP-6963：为什么 window.ethereum 不够了"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: intermediate
+type: choice
+tags: [web3, wallet, eip-6963, provider]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q02]
+last_updated: 2026-08-07
+---
+
+## 题目
+在 EIP-6963 之前，dApp 通常通过 `window.ethereum` 来发现钱包。这有什么核心问题？EIP-6963 是如何解决的？
+
+## 选项
+A. `window.ethereum` 是同步的，EIP-6963 把它改成异步
+B. 多个钱包同时安装时会争抢 `window.ethereum`，EIP-6963 通过事件广播让 dApp 看到所有钱包 ✓
+C. `window.ethereum` 不支持 EVM 兼容链，EIP-6963 增加了多链支持
+D. EIP-6963 替代了 `window.ethereum`，新规范下不再使用前者
+
+## 解析
+**问题**：浏览器钱包（MetaMask、Rabby、Coinbase Wallet、OKX Wallet 等）都会覆盖 `window.ethereum`。最后注入的钱包获胜，dApp 完全无法让用户选择其他钱包。
+
+**EIP-6963 方案**：每个钱包在启动时派发一个 `eip6963:provider` 事件，事件 `detail` 包含：
+
+```ts
+interface EIP6963ProviderInfo {
+  uuid: string;       // 钱包唯一 ID
+  name: string;       // 展示名称
+  icon: string;       // data URI 图标
+  rdns: string;       // Reverse Domain Name，如 'io.metamask'
+}
+```
+
+dAPP 监听事件并收集所有 provider，再用 `EIP6963ProviderInfo` 让用户选择。
+
+```ts
+function listenForProviders() {
+  const providers: EIP6963ProviderDetail[] = [];
+  window.addEventListener('eip6963:provider', (e) => {
+    providers.push(e.detail);
+  });
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+  return providers;
+}
+```
+
+兼容性：现代钱包（MIP 2023+ 的 MetaMask、Rabby、Coinbase Wallet 等）都支持。建议用 `mipd` 这个库来处理跨浏览器差异。
+
+## 参考
+- [EIP-6963 规范](https://eips.ethereum.org/EIPS/eip-6963)
+- [mipd — 跨浏览器 EIP-6963 工具](https://github.com/wevm/mipd)

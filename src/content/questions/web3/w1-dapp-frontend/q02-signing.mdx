@@ -1,0 +1,57 @@
+---
+id: web3-w1-q02
+title: "personal_sign vs eth_signTypedData_v4"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: advanced
+type: multi-choice
+tags: [web3, signing, eip-712, security]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q01]
+last_updated: 2026-08-07
+---
+
+## 题目
+关于钱包签名的几种方式，下列哪些说法是**正确**的？（多选）
+
+## 选项
+A. `personal_sign` 会把消息包裹在前缀里以防止签名任意交易数据 [correct]
+B. `eth_signTypedData_v4` 配合 EIP-712 让用户在钱包中看到结构化的字段而非十六进制字符串 [correct]
+C. 让用户对一段任意文本用 `personal_sign` 是安全的，因为签出的签名无法被重放为交易
+D. EIP-712 的 `domain.separator` 主要作用是让同一消息在不同 dApp / 链之间不能被复用 [correct]
+
+## 解析
+**A 正确**：`personal_sign` 自动加前缀 `"\x19Ethereum Signed Message:\n" + len(message)`，使得钱包不会把这段消息当作交易哈希签名。但前缀固定，**不**包含 chainId、合约地址，因此对相同消息在不同链上签出来的签名是相同的。
+
+**B 正确**：`eth_signTypedData_v4` 接受 EIP-712 结构化数据：
+
+```ts
+{
+  domain: {
+    name: 'MyDApp',
+    version: '1',
+    chainId: 1,
+    verifyingContract: '0x...'
+  },
+  types: { Permit: [...] },
+  message: { owner: '0x...', value: '100' }
+}
+```
+
+钱包 UI 会显示成「MyDApp 要求你授权 100 给 0x...」，而不是一坨 hex。
+
+**C 错误（这是最常见的致命漏洞）**：
+- 签名虽然不是交易，但**可以在某些合约里被用作授权凭证**。
+- 例如 EIP-2612 permit、EIP-3009 transferWithAuthorization、Sign-In with Ethereum (SIWE)：只要服务端拿到合法签名就能调用合约。
+- 必须始终验证 `domain.chainId`、`verifyingContract`、加入 nonce、过期时间，并使用 SIWE 的标准 message 格式。
+
+**D 正确**：`domain.separator` 把链、合约、版本写进哈希，让签名在别处无效。这是 EIP-712 最重要的安全设计。
+
+## 参考
+- [EIP-712: Typed structured data hashing](https://eips.ethereum.org/EIPS/eip-712)
+- [EIP-2612: Permit extensions](https://eips.ethereum.org/EIPS/eip-2612)
+- [wevm/siwe — Sign-In with Ethereum](https://github.com/wevm/siwe)
+- [Alchemy — A Developer's Guide to EIP-712](https://www.alchemy.com/blog/eip-712)
