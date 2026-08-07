@@ -1,21 +1,35 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
-import type { Frontmatter, ParsedQuestion, ChoiceOption, Category, Status } from './types';
+import type {
+  Frontmatter,
+  ParsedQuestion,
+  ChoiceOption,
+  Category,
+  Status,
+  Difficulty,
+  QuestionType,
+  Source,
+  Language,
+} from './types';
 
 const REQUIRED_FIELDS: (keyof Frontmatter)[] = [
   'id', 'title', 'category', 'sub_category', 'week', 'difficulty',
   'type', 'tags', 'source', 'status', 'language', 'last_updated',
 ];
 
-const VALID_STATUS: Status[] = ['reviewed', 'draft', 'needs-review'];
-const VALID_CATEGORIES: Category[] = ['frontend', 'web3', 'remote'];
+const VALID_STATUS = ['reviewed', 'draft', 'needs-review'] as const;
+const VALID_CATEGORIES = ['frontend', 'web3', 'remote'] as const;
+const VALID_DIFFICULTY = ['basic', 'intermediate', 'advanced'] as const;
+const VALID_TYPE = ['choice', 'multi-choice', 'interview', 'code'] as const;
+const VALID_SOURCE = ['ai-generated', 'handwritten', 'community'] as const;
+const VALID_LANGUAGE = ['zh', 'en', 'bilingual'] as const;
 
 function getContentRoot(): string {
   return process.env.CONTENT_ROOT || path.resolve(process.cwd(), 'content');
 }
 
-function parseOptions(body: string): { options: ChoiceOption[]; bodySansOptions: string } {
+function parseOptions(body: string): ChoiceOption[] {
   const options: ChoiceOption[] = [];
   for (const line of body.split('\n')) {
     const m = line.match(/^([A-Z])\.\s+(.+)$/);
@@ -32,13 +46,25 @@ function parseOptions(body: string): { options: ChoiceOption[]; bodySansOptions:
     }
     options.push({ key, text, correct });
   }
-  return { options, bodySansOptions: body };
+  return options;
 }
 
 function extractSection(body: string, header: string): string {
+  // Match `## {header}` at start-of-line, capture until next `## ` at line start or EOF.
+  // Anchors use \n explicitly (no multiline flag) to avoid `$` matching any line ending.
   const re = new RegExp(`(?:^|\\n)##\\s+${header}[ \\t]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##\\s|$)`);
   const m = body.match(re);
   return m ? m[1].trim() : '';
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(v => typeof v === 'string');
+}
+
+function normalizeDateString(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return null;
 }
 
 function validateFrontmatter(fm: Record<string, unknown>, filePath: string): Frontmatter {
@@ -47,14 +73,53 @@ function validateFrontmatter(fm: Record<string, unknown>, filePath: string): Fro
       throw new Error(`[${filePath}] Missing required frontmatter field: ${field}`);
     }
   }
+
+  if (typeof fm.title !== 'string' || fm.title.length === 0) {
+    throw new Error(`[${filePath}] title must be a non-empty string`);
+  }
+  if (typeof fm.id !== 'string' || fm.id.length === 0) {
+    throw new Error(`[${filePath}] id must be a non-empty string`);
+  }
+  if (typeof fm.sub_category !== 'string' || fm.sub_category.length === 0) {
+    throw new Error(`[${filePath}] sub_category must be a non-empty string`);
+  }
+  if (!Number.isInteger(fm.week) || (fm.week as number) < 1) {
+    throw new Error(`[${filePath}] week must be a positive integer (got: ${JSON.stringify(fm.week)})`);
+  }
+  const lastUpdated = normalizeDateString(fm.last_updated);
+  if (!lastUpdated) {
+    throw new Error(`[${filePath}] last_updated must be a date string or Date (got: ${typeof fm.last_updated})`);
+  }
+  fm.last_updated = lastUpdated;
+
   if (!VALID_CATEGORIES.includes(fm.category as Category)) {
-    throw new Error(`[${filePath}] Invalid category: ${fm.category}`);
+    throw new Error(`[${filePath}] Invalid category: ${JSON.stringify(fm.category)}`);
   }
   if (!VALID_STATUS.includes(fm.status as Status)) {
-    throw new Error(`[${filePath}] Invalid status: ${fm.status}`);
+    throw new Error(`[${filePath}] Invalid status: ${JSON.stringify(fm.status)}`);
   }
-  if (fm.status === 'reviewed' && !fm.reviewer) {
-    throw new Error(`[${filePath}] status=reviewed requires reviewer field`);
+  if (!VALID_DIFFICULTY.includes(fm.difficulty as Difficulty)) {
+    throw new Error(`[${filePath}] Invalid difficulty: ${JSON.stringify(fm.difficulty)}`);
+  }
+  if (!VALID_TYPE.includes(fm.type as QuestionType)) {
+    throw new Error(`[${filePath}] Invalid type: ${JSON.stringify(fm.type)}`);
+  }
+  if (!VALID_SOURCE.includes(fm.source as Source)) {
+    throw new Error(`[${filePath}] Invalid source: ${JSON.stringify(fm.source)}`);
+  }
+  if (!VALID_LANGUAGE.includes(fm.language as Language)) {
+    throw new Error(`[${filePath}] Invalid language: ${JSON.stringify(fm.language)}`);
+  }
+
+  if (!isStringArray(fm.tags)) {
+    throw new Error(`[${filePath}] tags must be an array of strings (got: ${JSON.stringify(fm.tags)})`);
+  }
+  if (fm.related !== undefined && !isStringArray(fm.related)) {
+    throw new Error(`[${filePath}] related must be an array of strings if present`);
+  }
+
+  if (fm.status === 'reviewed' && (!fm.reviewer || typeof fm.reviewer !== 'string')) {
+    throw new Error(`[${filePath}] status=reviewed requires non-empty reviewer field`);
   }
   return fm as unknown as Frontmatter;
 }
@@ -78,7 +143,7 @@ export function parseQuestionFile(filePath: string): ParsedQuestion {
     if (!optSection) {
       throw new Error(`[${filePath}] choice/multi-choice question requires "## 选项" section`);
     }
-    options = parseOptions(optSection).options;
+    options = parseOptions(optSection);
     if (options.length < 2) {
       throw new Error(`[${filePath}] choice question requires at least 2 options`);
     }

@@ -82,6 +82,36 @@ describe('parseQuestionFile', () => {
       parseQuestionFile(`${INVALID_FIXTURES}/q09-multi-too-few-correct.mdx`)
     ).toThrow(/multi-choice question requires at least 2 correct/);
   });
+
+  it('throws when week is not a positive integer', () => {
+    expect(() =>
+      parseQuestionFile(`${INVALID_FIXTURES}/q10-bad-week.mdx`)
+    ).toThrow(/week must be a positive integer/);
+  });
+
+  it('throws when tags is not an array', () => {
+    expect(() =>
+      parseQuestionFile(`${INVALID_FIXTURES}/q11-tags-not-array.mdx`)
+    ).toThrow(/tags must be an array/);
+  });
+
+  it('throws when type is invalid', () => {
+    expect(() =>
+      parseQuestionFile(`${INVALID_FIXTURES}/q12-bad-type.mdx`)
+    ).toThrow(/Invalid type/);
+  });
+
+  it('throws when difficulty is invalid', () => {
+    expect(() =>
+      parseQuestionFile(`${INVALID_FIXTURES}/q13-bad-difficulty.mdx`)
+    ).toThrow(/Invalid difficulty/);
+  });
+
+  it('throws when language is invalid', () => {
+    expect(() =>
+      parseQuestionFile(`${INVALID_FIXTURES}/q14-bad-language.mdx`)
+    ).toThrow(/Invalid language/);
+  });
 });
 
 describe('loadAllQuestions', () => {

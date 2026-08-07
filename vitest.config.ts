@@ -10,6 +10,12 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       '@lib': resolve(__dirname, 'src/lib'),
     },
+    extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.json'],
+  },
+  server: {
+    deps: {
+      inline: [/@gray-matter/, /gray-matter/],
+    },
   },
   test: {
     environment: 'node',
