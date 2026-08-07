@@ -16,7 +16,7 @@ export default defineConfig({
       alias: {
         '@': '/src',
         '@lib': '/src/lib',
-        '@islands': '/src/islands',
+        '@islands': '/src/components/islands',
         '@components': '/src/components',
       },
     },

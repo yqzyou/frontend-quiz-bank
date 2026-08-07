@@ -26,7 +26,12 @@ const VALID_SOURCE = ['ai-generated', 'handwritten', 'community'] as const;
 const VALID_LANGUAGE = ['zh', 'en', 'bilingual'] as const;
 
 function getContentRoot(): string {
-  return process.env.CONTENT_ROOT || path.resolve(process.cwd(), 'content');
+  if (process.env.CONTENT_ROOT) return process.env.CONTENT_ROOT;
+  // Default: src/content/questions relative to cwd.
+  // Falls back to legacy `content/` for backwards compat.
+  const primary = path.resolve(process.cwd(), 'src/content/questions');
+  const legacy = path.resolve(process.cwd(), 'content');
+  return fs.existsSync(primary) ? primary : legacy;
 }
 
 function parseOptions(body: string): ChoiceOption[] {

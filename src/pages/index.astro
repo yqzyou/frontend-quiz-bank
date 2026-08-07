@@ -1,17 +1,180 @@
 ---
-import '../styles/global.css';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CategoryTabs from '../components/CategoryTabs.astro';
+import { loadAllQuestions } from '@lib/content-loader';
+
+const all = loadAllQuestions();
+const reviewed = all.filter((q) => q.frontmatter.status === 'reviewed');
+const draft = all.filter((q) => q.frontmatter.status === 'draft');
+
+const categories = [
+  {
+    id: 'frontend',
+    label: '前端',
+    desc: 'React / Vue / TS / 浏览器 / 性能 / 工程化',
+    accent: 'indigo',
+  },
+  {
+    id: 'web3',
+    label: 'Web3',
+    desc: '钱包 / 签名 / 合约交互 / viem / wagmi',
+    accent: 'violet',
+  },
+  {
+    id: 'remote',
+    label: '远程',
+    desc: '英文沟通 / 异步协作 / 跨时区 / 心态',
+    accent: 'emerald',
+  },
+] as const;
+
+const featured = reviewed.slice(0, 3);
+const recentDrafts = draft.slice(0, 3);
+
+const accentMap: Record<string, string> = {
+  indigo: 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-300',
+  violet: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-300',
+  emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300',
+};
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout>
+  <section class="grid gap-8 py-6 md:py-12">
+    <div class="max-w-2xl">
+      <p class="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+        <span class="size-1.5 rounded-full bg-emerald-500"></span>
+        W1 进行中 · 已发布 {reviewed.length} 道审校题
+      </p>
+      <h1 class="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
+        从前端到 Web3 / 远程
+        <span class="bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
+          的题库
+        </span>
+      </h1>
+      <p class="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300 sm:text-lg">
+        每周精选 React 基础、Web3 dApp 工程化、远程协作相关的高质量题目。配套本地进度、SM-2 复习与每日任务，
+        帮你把零散知识点攒成可量化的成长曲线。
+      </p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a
+          href="/questions"
+          class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+        >
+          开始练习
+          <span aria-hidden="true">→</span>
+        </a>
+        <a
+          href="https://github.com/yqzyou/frontend-quiz-bank"
+          rel="noopener noreferrer"
+          target="_blank"
+          class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          GitHub
+        </a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div class="text-3xl font-bold text-slate-900 dark:text-white">{all.length}</div>
+        <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">总题数</div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{reviewed.length}</div>
+        <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">已审校</div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div class="text-3xl font-bold text-amber-600 dark:text-amber-400">{draft.length}</div>
+        <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">草稿</div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div class="text-3xl font-bold text-violet-600 dark:text-violet-400">3</div>
+        <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">分类</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-8">
+    <h2 class="mb-4 text-2xl font-semibold text-slate-900 dark:text-white">学习方向</h2>
+    <ul class="grid gap-4 sm:grid-cols-3">
+      {
+        categories.map((c) => (
+          <li>
+            <a
+              href={`/questions?category=${c.id}`}
+              class:list={[
+                'block h-full rounded-2xl border p-6 transition hover:shadow-md',
+                accentMap[c.accent],
+              ]}
+            >
+              <div class="text-xl font-semibold">{c.label}</div>
+              <p class="mt-2 text-sm opacity-80">{c.desc}</p>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <CategoryTabs active="all" />
+
+  {
+    featured.length > 0 && (
+      <section class="py-4">
+        <div class="mb-4 flex items-baseline justify-between">
+          <h2 class="text-2xl font-semibold text-slate-900 dark:text-white">本周精选</h2>
+          <a href="/questions" class="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
+            查看全部 →
+          </a>
+        </div>
+        <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {featured.map((q) => (
+            <li class="group rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+              <div class="mb-3 flex items-center gap-2 text-xs">
+                <span class="rounded-full bg-indigo-100 px-2 py-0.5 font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                  {q.frontmatter.category}
+                </span>
+                <span class="text-slate-500">W{q.frontmatter.week}</span>
+                <span class="text-slate-500">·</span>
+                <span class="text-slate-500">{q.frontmatter.difficulty}</span>
+              </div>
+              <h3 class="font-semibold text-slate-900 group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">
+                {q.frontmatter.title}
+              </h3>
+              <p class="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+                {q.question}
+              </p>
+              <a
+                href={`/questions/${q.slug}`}
+                class="mt-4 inline-flex items-center text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                开始练习 →
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    recentDrafts.length > 0 && (
+      <section class="py-8">
+        <div class="mb-4 flex items-baseline justify-between">
+          <h2 class="text-2xl font-semibold text-slate-900 dark:text-white">草稿区（WIP）</h2>
+          <span class="text-xs text-slate-500">已撰写，待审校</span>
+        </div>
+        <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {recentDrafts.map((q) => (
+            <li class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/50">
+              <div class="mb-1 text-xs text-amber-700 dark:text-amber-300">
+                {q.frontmatter.category} · W{q.frontmatter.week}
+              </div>
+              <div class="font-medium text-slate-900 dark:text-slate-100">{q.frontmatter.title}</div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</BaseLayout>

@@ -1,0 +1,49 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = '前端题库 · Frontend Quiz Bank',
+  description = '面向「前端转 Web3 / 远程」程序员的开源题库。每周精选题目、自测进度、追踪复习。',
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).toString();
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <html data-theme="system" />
+  </head>
+  <body class="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:shadow"
+    >
+      跳到主内容
+    </a>
+    <Header />
+    <main id="main" class="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
