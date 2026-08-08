@@ -201,17 +201,24 @@ export function QuizCard({ question, slug }: QuizCardProps) {
           ) : (
             <div
               role="status"
-              className={`rounded-xl px-4 py-2 text-sm font-medium ${
+              className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium shadow-sm ${
                 isCorrect
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
-                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 dark:border-emerald-400 dark:bg-emerald-950/60 dark:text-emerald-200'
+                  : 'border-rose-500 bg-rose-50 text-rose-800 dark:border-rose-400 dark:bg-rose-950/60 dark:text-rose-200'
               }`}
             >
-              {isCorrect ? '✓ 正确' : '✗ 不正确'} · 正确答案：{correctKeys.join(', ')}
+              <div className="flex flex-wrap items-center gap-2">
+                <span aria-hidden="true" className="text-base leading-none">{isCorrect ? '✓' : '✗'}</span>
+                <span>{isCorrect ? '答对了' : '没答对'}</span>
+                <span aria-hidden="true" className="opacity-50">·</span>
+                <span>
+                  正确答案：<span className="font-bold tracking-wide">{correctKeys.join(', ')}</span>
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={handleReset}
-                className="ml-3 underline"
+                className="rounded-lg bg-white/70 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-white dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-900"
               >
                 再试一次
               </button>
@@ -221,16 +228,30 @@ export function QuizCard({ question, slug }: QuizCardProps) {
       )}
 
       {submitted && isChoice && question.explanation && (
-        <details className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-          <summary className="cursor-pointer font-medium">解析</summary>
-          <div className="mt-2 whitespace-pre-line">{question.explanation}</div>
+        <details className="group mt-5 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/40">
+          <summary className="flex cursor-pointer list-none items-center gap-2 border-l-4 border-indigo-400 bg-indigo-50/60 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-indigo-50 dark:bg-indigo-950/30 dark:text-slate-200 dark:hover:bg-indigo-950/50">
+            <span className="inline-flex h-5 items-center rounded bg-indigo-100 px-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
+              解析
+            </span>
+            <span className="ml-auto text-slate-400 transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+          </summary>
+          <div className="border-l-4 border-indigo-100 px-4 py-3 text-sm leading-7 whitespace-pre-line text-slate-700 dark:border-indigo-900/40 dark:text-slate-200">
+            {question.explanation}
+          </div>
         </details>
       )}
 
       {!isChoice && question.referenceAnswer && (
-        <details className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-          <summary className="cursor-pointer font-medium">参考答案</summary>
-          <div className="mt-2 whitespace-pre-line">{question.referenceAnswer}</div>
+        <details className="group mt-5 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/40">
+          <summary className="flex cursor-pointer list-none items-center gap-2 border-l-4 border-emerald-400 bg-emerald-50/60 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-emerald-50 dark:bg-emerald-950/30 dark:text-slate-200 dark:hover:bg-emerald-950/50">
+            <span className="inline-flex h-5 items-center rounded bg-emerald-100 px-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+              参考答案
+            </span>
+            <span className="ml-auto text-slate-400 transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+          </summary>
+          <div className="border-l-4 border-emerald-100 px-4 py-3 text-sm leading-7 whitespace-pre-line text-slate-700 dark:border-emerald-900/40 dark:text-slate-200">
+            {question.referenceAnswer}
+          </div>
         </details>
       )}
 

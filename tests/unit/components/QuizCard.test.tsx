@@ -78,7 +78,7 @@ describe('<QuizCard />', () => {
     await user.click(screen.getByRole('button', { name: /^B\b/ }));
     await user.click(screen.getByRole('button', { name: /提交/i }));
 
-    expect(screen.getByText(/错误|不正确/i)).toBeInTheDocument();
+    expect(screen.getByText(/没答对|错误|不正确/i)).toBeInTheDocument();
     const rec = useProgressStore.getState().answered[SLUG];
     expect(rec?.correct).toBe(false);
     expect(rec?.picked).toEqual(['B']);
