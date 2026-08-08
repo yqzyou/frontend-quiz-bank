@@ -1,0 +1,85 @@
+---
+id: fe-w1-q11
+title: "React 19 use()：在条件里读取 promise 与 context"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: intermediate
+type: choice
+tags: [react, react-19, hooks, suspense]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q02, fe-w1-q10]
+last_updated: 2026-08-08
+---
+
+## 题目
+React 19 引入的 `use()` hook 与传统 hooks（useState、useEffect）相比，最大的语法差异是？
+
+## 选项
+A. `use()` 可以在 if 分支、循环里调用；其他 hooks 不行 ✓
+B. `use()` 必须在组件顶部，与其他 hooks 一致
+C. `use()` 只能在服务端组件里用
+D. `use()` 替代了 useState，未来 useState 会被弃用
+
+## 解析
+**`use()` 的两个能力**：
+
+1. **解包 promise**：promise 未就绪时 throw（触发上层 Suspense），就绪后返回值
+2. **解包 context**：`use(theme)`、`use(LocaleContext)`，可在条件分支调用
+
+```jsx
+import { use } from 'react';
+
+function Profile({ id, showDetails }) {
+  // ✅ 可以在 if 里
+  if (showDetails) {
+    const user = use(fetchUser(id)); // throw promise → Suspense
+    return <Details user={user} />;
+  }
+  return <Summary />;
+}
+```
+
+**对比传统 hooks**：
+
+```jsx
+// ❌ useState/useEffect 不能条件调用
+if (showDetails) {
+  const [user, setUser] = useState(null); // 破坏 hooks 调用顺序
+}
+```
+
+**为什么其他 hooks 不能条件化？**
+- React 用"调用顺序"对应每个 hook 的内部 state slot
+- 顺序变化 → state 错位 → 难以调试的 bug
+
+**为什么 `use()` 可以条件化？**
+- `use()` 不是基于调用顺序的，它从参数本身（promise/context）取值
+- 一个 promise 实例就是它的"身份"，与调用顺序无关
+
+**典型场景**：
+
+```jsx
+function App() {
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <ErrorBoundary fallback={<Retry />}>
+        <UserProfile id={1} />
+      </ErrorBoundary>
+    </Suspense>
+  );
+}
+
+function UserProfile({ id }) {
+  const user = use(fetchUser(id)); // 自动 throw + 重渲
+  return <h1>{user.name}</h1>;
+}
+```
+
+**注意**：`use()` 接受的 promise 必须**在组件外创建**或在 cache 中复用，否则每次渲染都新建 promise 导致无限重试。配合 React 19 的 `cache()` 可缓存 fetch promise。
+
+## 参考
+- [React 19: use](https://react.dev/reference/react/use)
+- [React Docs: Caching with cache()](https://react.dev/reference/react/cache)

@@ -1,0 +1,69 @@
+---
+id: fe-w1-q07
+title: "useRef vs useState：什么时候不该触发重渲染"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: intermediate
+type: multi-choice
+tags: [react, hooks, ref, state, re-render]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q01, fe-w1-q06]
+last_updated: 2026-08-08
+---
+
+## 题目
+关于 `useRef` 与 `useState`，下列说法正确的有哪些？（多选）
+
+## 选项
+A. 改 `ref.current` 不会触发重渲染，因此适合存"对 UI 无影响的可变值"（如计时器 id、Web3 钱包实例） ✓
+B. 两者都能在组件多次渲染间保持值，但只有 `useState` 的变化会触发 reconciliation ✓
+C. `useRef(initialValue)` 等价于 `useState({ current: initialValue })[0]`
+D. `useRef` 比 `useState` 更快，应优先用 `useRef`
+
+## 解析
+**核心区别**：
+
+```jsx
+const [count, setCount] = useState(0);  // setCount → 重渲染
+const timerRef = useRef<number>();      // timerRef.current = 1 → 不重渲染
+```
+
+| 维度 | useRef | useState |
+|------|--------|----------|
+| 渲染时初始化 | 是（initialValue 只在首次生效） | 是 |
+| 跨渲染保持值 | 是 | 是 |
+| 修改触发重渲染 | **否** | 是 |
+| 读取时机 | 渲染期间也能读 | 渲染期间用 state 值 |
+| 适用 | DOM 引用、第三方实例、计时器 | 影响视觉的状态 |
+
+**典型场景**：
+
+```jsx
+function WalletConnector() {
+  const [address, setAddress] = useState('');
+  const providerRef = useRef<EIP1193Provider | null>(null);
+
+  useEffect(() => {
+    providerRef.current = detectProvider();
+    // 不需要触发表单 UI 变化
+  }, []);
+
+  const connect = async () => {
+    const addr = await providerRef.current?.request({ method: 'eth_requestAccounts' });
+    setAddress(addr[0]); // 触发渲染显示地址
+  };
+
+  return <button onClick={connect}>{address || '连接'}</button>;
+}
+```
+
+**为什么 D 错？** 性能不是优劣标准——选 ref/state 取决于"UI 是否依赖该值"。错用 ref 存 UI 状态会导致显示与数据脱节（state 变了 UI 没变）。
+
+**为什么 C 不严谨？** ref 的 `current` 在后续渲染中**不会被重置**（initialValue 只用一次）；而 `useState({ current: ... })` 创建的字面量每次渲染都新建，但 React 内部会保留首次创建的 state 值——所以**值行为**等价，**API 语义**不等价。
+
+## 参考
+- [React Docs: useRef](https://react.dev/reference/react/useRef)
+- [When to use refs vs state](https://react.dev/learn/referencing-values-with-refs)

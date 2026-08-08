@@ -1,0 +1,77 @@
+---
+id: fe-w1-q10
+title: "Suspense + ErrorBoundary：声明式数据加载的两个搭档"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: advanced
+type: choice
+tags: [react, suspense, error-boundary, async]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q02, fe-w1-q11]
+last_updated: 2026-08-08
+---
+
+## 题目
+你想用 React 19 + Suspense 实现"列表加载时显示骨架、加载失败显示错误重试"。最合理的组件嵌套是？
+
+## 选项
+A. `<ErrorBoundary><Suspense fallback={<Skeleton />}><List /></Suspense></ErrorBoundary>` ✓
+B. `<Suspense fallback={<Skeleton />}><ErrorBoundary><List /></ErrorBoundary></Suspense>`
+C. `<List />` 内部 try/catch + 自己 mount 时 setLoading
+D. ErrorBoundary 和 Suspense 平级、互不嵌套
+
+## 解析
+**正确顺序：ErrorBoundary 包 Suspense**
+
+```jsx
+<ErrorBoundary fallback={<ErrorRetry onRetry={refetch} />}>
+  <Suspense fallback={<Skeleton />}>
+    <AsyncList query={query} />
+  </Suspense>
+</ErrorBoundary>
+```
+
+**为什么 A 是对的？**
+- 加载中：`AsyncList` 抛 promise → Suspense 拦截 → 显示 Skeleton
+- 加载失败：promise reject → Suspense 把 rejection 重新抛给上层 → ErrorBoundary 拦截 → 显示 ErrorRetry
+- 加载成功：Suspense children 渲染出来 → 用户看到列表
+
+**为什么 B 错？**
+- Suspense 包 ErrorBoundary 时，ErrorBoundary 内部 throw 的非 promise 错误会被 Suspense 当作"加载失败"误处理
+- 实际上 React 18+ 允许 throw promise（"loading"）和 throw error（"failure"）共存于 Suspense，但 ErrorBoundary 必须在外面才能拦截 failure 的"显示"，否则 fallback 会被 Suspense 当成 children 抛回
+
+**典型的 React 19 数据获取范式**：
+
+```jsx
+import { use } from 'react';
+
+function AsyncList({ query }: { query: string }) {
+  // `use` 解包 promise，未就绪时 throw
+  const items = use(fetchItems(query));
+  return <ul>{items.map((i) => <li key={i.id}>{i.name}</li>)}</ul>;
+}
+
+// 父组件
+function ListPage({ query }) {
+  return (
+    <ErrorBoundary fallback={<ErrorRetry />}>
+      <Suspense fallback={<Skeleton />}>
+        <AsyncList query={query} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+```
+
+**关键点**：
+- ErrorBoundary 仍是 class component（React 19 也未提供函数版 hook 替代）
+- 切换 query 时建议用 `key={query}` 强制 remount，让 Suspense 重新进入 loading 状态
+- 加进 `useTransition` 可让骨架在 200ms 内不闪烁（先保留旧 UI）
+
+## 参考
+- [React Docs: <Suspense>](https://react.dev/reference/react/Suspense)
+- [React 19 use()](https://react.dev/reference/react/use)
+- [Error Boundaries in React 19](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary)

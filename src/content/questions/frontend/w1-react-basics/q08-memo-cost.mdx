@@ -1,0 +1,70 @@
+---
+id: fe-w1-q08
+title: "useMemo/useCallback 的真实成本：什么时候反而更慢"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: advanced
+type: choice
+tags: [react, performance, memo, hooks]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q05, fe-w1-q07]
+last_updated: 2026-08-08
+---
+
+## 题目
+下列哪种情况下，包一层 `useMemo` 会让组件**更慢**而不是更快？
+
+## 选项
+A. 计算成本远高于 useMemo 自身的对象创建与依赖比较成本
+B. 缓存的值是个原始类型（如 `useMemo(() => a + b, [a, b])`） ✓
+C. memo 的值被传给 React.memo 子组件作为 prop
+D. 依赖项是稳定值
+
+## 解析
+**useMemo 的真实开销**：
+
+```js
+// 假设 cost = 计算 + 缓存查找 + 依赖比较
+const value = useMemo(() => compute(a, b), [a, b]);
+// 内部展开：
+// 1. 创建 [a, b] 数组（每次渲染都创建）
+// 2. 与上次 deps 数组逐项 Object.is 比较
+// 3. 若不同 → 调用 compute；若相同 → 返回缓存值
+```
+
+**当 compute 本身很便宜时**（如 `a + b`、简单字符串拼接、布尔判断）：
+- useMemo 反而引入了"创建 deps 数组 + 比较两次 Object.is + 维护缓存表"的固定成本
+- 多次渲染后总成本 ≈ 直接计算的 N 倍
+
+**何时 useMemo 真正有用**：
+
+```js
+// 1. 计算昂贵（如 1000 项的 filter/sort/map 链）
+const sorted = useMemo(() => heavySort(rows), [rows]);
+
+// 2. 引用稳定性（传给 memo 子组件或 useEffect 依赖）
+const context = useMemo(() => ({ user, theme }), [user, theme]);
+<ExpensiveChild config={context} />  // 没 useMemo 会每次新引用，破坏 memo
+
+// 3. 创建大型数据结构（new Map / new Set）
+```
+
+**useCallback 同理**：
+
+```js
+// 不必要的 useCallback
+const handleClick = useCallback(() => doSomething(id), [id]);
+// 若 handle 没传给 memo 子组件或没进 effect deps
+// 等价于：每次创建函数（≈ 几纳秒）vs useCallback 内部 deps 比较（≈ 几纳秒）
+// 没收益。
+```
+
+**React Compiler（React 19+）**：编译器会自动决定哪些值需要 memoize，手写 useMemo/useCallback 在新项目里通常被消除。在非编译器项目里，仍需按"昂贵计算 / 引用稳定"两条规则手写。
+
+## 参考
+- [React Docs: You Might Not Need an Effect → useMEMOize](https://react.dev/learn/you-might-not-need-an-effect)
+- [React Compiler](https://react.dev/learn/react-compiler)
+- [ryansolid: useMemo is not free](https://www.developerway.com/how-to-use-memoization-correctly)

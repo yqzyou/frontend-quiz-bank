@@ -1,0 +1,78 @@
+---
+id: fe-w1-q09
+title: "自定义 hook 设计：useDebounce 的边界与 cleanup"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: intermediate
+type: multi-choice
+tags: [react, hooks, custom-hook, debounce]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q02, fe-w1-q07]
+last_updated: 2026-08-08
+---
+
+## 题目
+下列是一个 `useDebounce` 实现的代码评审反馈，正确的有哪些？（多选）
+
+```jsx
+function useDebounce(value, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    setTimeout(() => setDebounced(value), delay);
+  }, [value, delay]);
+  return debounced;
+}
+```
+
+## 选项
+A. effect 没有 cleanup，组件卸载后定时器可能调用 `setDebounced` 触发 "setState on unmounted" 警告 ✓
+B. 每次 value 变化都新建一个定时器，旧定时器没清掉，最终会触发多次回写，丧失 debounce 语义 ✓
+C. delay 变化也会重置 timer，是合理的（用户改变 debounce 长度时应该立即生效）
+D. 应改为 `useLayoutEffect` 以避免视觉抖动
+
+## 解析
+**正确的 `useDebounce`**：
+
+```jsx
+function useDebounce<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState<T>(value);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id); // ✅ cleanup
+  }, [value, delay]);
+
+  return debounced;
+}
+```
+
+**为什么 cleanup 必需？**
+1. 防止多次回写：value 从 'a' → 'ab' → 'abc'，每次 effect 重跑都先清掉上一个 timer，只保留最后一个 300ms 后执行
+2. 防止卸载后回写：组件卸载时 cleanup 跑一次，避免 React 18 之前版本的 setState-on-unmounted 警告（React 18 已静默，但仍是内存泄漏）
+
+**为什么 D 错？** debounce 是异步语义（"用户停止输入后再发请求"），不该用 `useLayoutEffect`。后者在浏览器 paint 前同步执行，反而阻塞绘制。
+
+**进阶：把内部 state 也做防抖（带 cancel）**：
+
+```jsx
+function useDebouncedCallback<T extends (...args: any[]) => void>(fn: T, delay = 300) {
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const fnRef = useRef(fn);
+  useEffect(() => { fnRef.current = fn; }, [fn]);
+
+  const debounced = useCallback((...args: Parameters<T>) => {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => fnRef.current(...args), delay);
+  }, [delay]);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+  return debounced;
+}
+```
+
+## 参考
+- [useDebounce 库源码](https://github.com/xnimorz/use-debounce/blob/master/src/useDebouncedCallback.ts)
+- [React Docs: Clean up an effect](https://react.dev/learn/synchronizing-with-effects#step-3-add-cleanup)

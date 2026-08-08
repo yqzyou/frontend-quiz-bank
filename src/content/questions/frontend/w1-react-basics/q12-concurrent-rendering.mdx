@@ -1,0 +1,74 @@
+---
+id: fe-w1-q12
+title: "startTransition / useDeferredValue：把昂贵更新标记为低优先级"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: advanced
+type: multi-choice
+tags: [react, react-18, concurrent, performance]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q08, fe-w1-q11]
+last_updated: 2026-08-08
+---
+
+## 题目
+下列关于 `startTransition` 和 `useDeferredValue` 的描述正确的有哪些？（多选）
+
+## 选项
+A. `startTransition(() => setQuery(text))` 把这次 setState 标为低优先级，用户输入不会被卡顿打断 ✓
+B. `useDeferredValue(value)` 内部基于 useState + useEffect 实现，返回延迟到下一帧才更新的副本 ✓
+C. 它们能让昂贵的同步计算变快
+D. 两者都可用于让"输入框输入"和"基于输入的列表过滤"流畅并存
+
+## 解析
+**核心机制**：React 18 的 Concurrent Renderer 把更新分为两类：
+
+- 紧急（urgont）：用户输入、按钮点击 → 立即响应
+- 过渡（transition）：搜索结果、表格筛选 → 可被打断，不阻塞 UI
+
+**startTransition：标记 setState 为低优先级**
+
+```jsx
+function SearchBox() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+
+  const onChange = (e) => {
+    setQuery(e.target.value); // 紧急：输入框立即更新
+    startTransition(() => {
+      setResults(filterHugeList(e.target.value)); // 过渡：可被打断
+    });
+  };
+  // ...
+}
+```
+
+**useDeferredValue：从 props/外部输入派生**
+
+```jsx
+function FilteredList({ query }) {
+  // query 是 props，组件内拿不到 setState
+  const deferredQuery = useDeferredValue(query);
+  const items = useMemo(() => filterHugeList(deferredQuery), [deferredQuery]);
+  return <ul>{items.map(...)}</ul>;
+}
+```
+
+**为什么 C 错？**
+- 它们不优化计算本身（O(n) 还是 O(n)）
+- 它们让"昂贵更新"不阻塞高优先级更新
+- 真正变快仍需 useMemo、虚拟列表、Web Worker 等
+
+**何时用 startTransition vs useDeferredValue**：
+- 你拥有 setState 调用 → startTransition
+- 你只能拿到 props，要在子组件做平滑过渡 → useDeferredValue
+
+**React 19 增强**：`useDeferredValue` 支持 `initialValue` 参数，避免初次渲染的"双渲染"开销。
+
+## 参考
+- [React Docs: startTransition](https://react.dev/reference/react/startTransition)
+- [React Docs: useDeferredValue](https://react.dev/reference/react/useDeferredValue)
+- [Concurrent UI Patterns](https://react.dev/learn/you-might-not-need-an-effect#fetching-data-with-debouncing)

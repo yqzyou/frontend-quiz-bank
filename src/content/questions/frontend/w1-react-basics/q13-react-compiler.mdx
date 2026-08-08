@@ -1,0 +1,70 @@
+---
+id: fe-w1-q13
+title: "React Compiler：未来还要手写 useMemo / useCallback 吗"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: advanced
+type: choice
+tags: [react, react-compiler, performance, memoization]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q05, fe-w1-q08]
+last_updated: 2026-08-08
+---
+
+## 题目
+React Compiler（React 19+ 配套）的目标是自动 memoize。开启后下列哪种说法是正确的？
+
+## 选项
+A. 编译器自动追踪组件内的值与函数引用，开发者通常不再需要手写 `useMemo`/`useCallback` ✓
+B. 编译器会重写所有 React.memo 包裹，开发体验等价于 memo 化的整个组件
+C. 开启后 React 19 的 hooks 完全不变，但性能比手写 memo 还要差
+D. 编译器会编译 `console.log` 为 noop
+
+## 解析
+**React Compiler 做什么**：
+- 在 Babel/ESBuild 阶段把函数组件和 hooks 转写为带 memo 的版本
+- 用静态分析推断依赖
+- 自动跳过不稳定的副作用依赖
+
+**前后对比**：
+
+```jsx
+// 编译前
+function Cart({ items }) {
+  const total = items.reduce((sum, i) => sum + i.price, 0);
+  const checkout = () => sendCheckout(items);
+  return <Button onClick={checkout}>Total: {total}</Button>;
+}
+
+// 编译后（伪代码）
+function Cart({ items }) {
+  const items$ = useMemoCache(items);
+  const total = useMemo(() => items.reduce(...), [items$]);
+  const checkout = useCallback(() => sendCheckout(items), [items$]);
+  return <Button onClick={checkout}>Total: {total}</Button>;
+}
+```
+
+**为什么选项 A 是对的？**
+- React 团队明确说："React Compiler 让你写直观的代码，编译器做 memo"
+- 现有手写 memo 仍可保留——编译器识别并去重
+- 新代码可以不写 useMemo/useCallback
+
+**为什么选项 B 错？**
+- `React.memo(Component)` 是**组件级** memo（props 浅比较），与编译器的**组件内值级** memo 是不同概念
+- 编译器**不消除** `React.memo`，反而是补充
+
+**为什么选项 D 错？** 编译器**不**做无关代码消除（DCE）。`console.log` 移除是生产环境 minify 的事。
+
+**何时仍要手写 memo？**
+- 跨组件共享的高阶缓存（`useMemo(() => fetchUser(id), [id])` 配合 Suspense）
+- 极端性能优化场景（编译器可能不如人类聪明）
+
+**采用**：React 19 项目可在 babel 里加 `babel-plugin-react-compiler`。已通过 ESLint 规则提示"违反规则"的代码。
+
+## 参考
+- [React Compiler 文档](https://react.dev/learn/react-compiler)
+- [React Conf 2024: React Compiler Deep Dive](https://react.dev/blog/2024/10/21/react-19)

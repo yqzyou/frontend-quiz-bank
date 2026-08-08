@@ -1,0 +1,82 @@
+---
+id: fe-w1-q14
+title: "SSR Hydration 不匹配：为什么 Date.now() 会报错"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: intermediate
+type: multi-choice
+tags: [react, ssr, hydration, astro]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q07, fe-w1-q13]
+last_updated: 2026-08-08
+---
+
+## 题目
+在 Astro + React Islands 的 SSR 项目中，下列哪些写法会引发 hydration mismatch？（多选）
+
+## 选项
+A. 服务端渲染时 `<div>{new Date().toLocaleTimeString()}</div>`，客户端注水时再渲染一次 ✓
+B. 服务端渲染时用 `Math.random()` 生成 key ✓
+C. 在客户端 only 的 island 里用 `useEffect` 中读 `window.innerWidth`
+D. 服务端与客户端都渲染相同 props 注入的内容
+
+## 解析
+**什么是 hydration mismatch？**
+- 服务端先把 HTML 渲染出来发给浏览器
+- 浏览器加载 JS 后，React 用 hydration 把这个 HTML 变成可交互的 fiber 树
+- 如果客户端首次渲染的 vdom 与服务端输出的 HTML 不一致 → 报错 + 整个子树重渲
+
+**典型陷阱**：
+
+```jsx
+// ❌ 时间戳
+function Clock() {
+  return <div>{new Date().toLocaleTimeString()}</div>;
+  // 服务端 12:00:00 → HTML
+  // 客户端 1ms 后 12:00:01 → 不匹配
+}
+
+// ❌ 随机数
+function List() {
+  return items.map(() => <li key={Math.random()}>...</li>);
+  // SSR/CSR 两次随机数不同 → key 错位
+}
+
+// ❌ 读浏览器 API
+function Footer() {
+  return <div>Window width: {window.innerWidth}</div>;
+  // 服务端无 window → 报错
+}
+
+// ❌ localStorage
+function Header() {
+  const [user, setUser] = useState(localStorage.getItem('user'));
+  // 服务端无 localStorage
+}
+```
+
+**正确模式**：
+
+```jsx
+function Clock() {
+  const [time, setTime] = useState<string | null>(null);
+  useEffect(() => {
+    setTime(new Date().toLocaleTimeString());
+    const id = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return <div>{time ?? '加载中…'}</div>;
+}
+```
+
+**Astro 的 `client:only` 指令**：当组件必须依赖浏览器 API 时，加 `client:only="react"`，告诉 Astro 跳过 SSR，只在客户端渲染。
+
+**为什么 C 是对的？** `useEffect` 在 hydration 完成后才跑，所以即使里面有 `window.innerWidth`，也不影响 SSR 与 CSR 首屏对齐——首屏渲染时 `time` 是 null，两端一致。
+
+## 参考
+- [React Docs: Hydration Errors](https://react.dev/errors/hydration)
+- [Astro: client:only 指令](https://docs.astro.build/en/reference/directives-reference/#clientonly)
+- [The Future of SSR: Streaming & Selective Hydration](https://github.com/reactwg/react-18/discussions/37)

@@ -1,0 +1,103 @@
+---
+id: fe-w1-q15
+title: "Context 性能陷阱：何时该换成 Zustand/Jotai"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: advanced
+type: choice
+tags: [react, context, state-management, performance, zustand]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q08, fe-w1-q12]
+last_updated: 2026-08-08
+---
+
+## 题目
+你写了下面的 Context，把全局用户和主题塞进同一个 Provider。下列哪个观察是正确的？
+
+```jsx
+const AppContext = createContext();
+function AppProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [theme, setTheme] = useState('dark');
+  return (
+    <AppContext.Provider value={{ user, setUser, theme, setTheme }}>
+      {children}
+    </AppContext.Provider>
+  );
+}
+```
+
+## 选项
+A. user 或 theme 任一变化 → 所有 useContext(AppContext) 的消费者全部重渲染，即使只用了 theme ✓
+B. 每个消费者只在自己用到的字段变化时重渲染
+C. Provider value 的对象引用每次都新建，必然引发所有消费者重渲染
+D. Context 是 React 内置的，比 Zustand 更快
+
+## 解析
+**两个性能问题**：
+
+**问题 1：value 引用不稳定**
+
+```jsx
+<AppContext.Provider value={{ user, setUser, theme, setTheme }}>
+```
+
+每次 Provider 渲染都创建新字面量对象。React 用 Object.is 比较 value，**任何变化**都让所有消费者重渲染。
+
+修复：
+
+```jsx
+const value = useMemo(() => ({ user, setUser, theme, setTheme }), [user, theme]);
+<AppContext.Provider value={value}>
+```
+
+**问题 2：消费者无法选择性订阅**
+
+```jsx
+function ThemeButton() {
+  const { theme } = useContext(AppContext);
+  return <button>{theme}</button>;
+}
+```
+
+虽然 ThemeButton 只用了 theme，但当 user 变化时，Provider value 也会变（即使 useMemo 优化了，依赖 [user, theme] 仍然变），所有 useContext 消费者都重渲染。
+
+**Context 的本质**：它不是状态库，是"依赖注入"机制。它没有 selector，更没有 useSyncExternalStore 的细粒度订阅。
+
+**何时换 Zustand / Jotai**：
+
+```jsx
+import { create } from 'zustand';
+
+const useStore = create((set) => ({
+  user: null,
+  theme: 'dark',
+  setUser: (u) => set({ user: u }),
+  setTheme: (t) => set({ theme: t }),
+}));
+
+function ThemeButton() {
+  const theme = useStore((s) => s.theme); // ✅ 只订阅 theme
+  return <button>{theme}</button>;
+}
+
+function UserInfo() {
+  const user = useStore((s) => s.user); // ✅ 只订阅 user
+  return <span>{user?.name}</span>;
+}
+```
+
+Zustand 通过 `useSyncExternalStore` 实现精确订阅，user 变化不会触发 ThemeButton 重渲染。
+
+**什么时候 Context 仍合适？**
+- 静态或低频变化（主题切换、locale、当前用户身份）
+- 全局依赖注入（router、i18n 函数、feature flags）
+- 子树共享的回调函数
+
+## 参考
+- [React Docs: useContext](https://react.dev/reference/react/useContext)
+- [Zustand](https://github.com/pmndrs/zustand)
+- [When to use Context vs State Library](https://kentcdodds.com/blog/state-colocation-will-make-your-react-app-faster)

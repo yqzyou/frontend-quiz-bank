@@ -1,0 +1,77 @@
+---
+id: fe-w1-q06
+title: "setState 闭包陷阱：为什么 counter++ 不是 +1"
+category: frontend
+sub_category: react-basics
+week: 1
+difficulty: basic
+type: choice
+tags: [react, hooks, state, closure]
+source: handwritten
+status: draft
+language: zh
+related: [fe-w1-q01, fe-w1-q02]
+last_updated: 2026-08-08
+---
+
+## 题目
+下列代码连续点击三次"加 1"按钮后，`count` 的值会是多少？
+
+```jsx
+function Counter() {
+  const [count, setCount] = useState(0);
+  const addThree = () => {
+    setCount(count + 1);
+    setCount(count + 1);
+    setCount(count + 1);
+  };
+  return <button onClick={addThree}>{count}</button>;
+}
+```
+
+## 选项
+A. 3
+B. 1 ✓
+C. 0
+D. 抛错
+
+## 解析
+**问题**：每次 `setCount(count + 1)` 用的都是同一帧渲染闭包里的 `count`，即 `0`。三次调用相当于：
+
+```js
+setCount(0 + 1); // → 1
+setCount(0 + 1); // → 1
+setCount(0 + 1); // → 1
+```
+
+React 18+ 会自动 batch 这三次 setState 为一次更新，最终 `count = 1`。
+
+**修复 1：函数式更新**（推荐）
+
+```jsx
+setCount((prev) => prev + 1);
+setCount((prev) => prev + 1);
+setCount((prev) => prev + 1);
+```
+
+每次更新基于上一次的 `prev`，最终 `count = 3`。
+
+**修复 2：用 ref / 中间变量**
+
+```jsx
+let next = count;
+next += 1; next += 1; next += 1;
+setCount(next);
+```
+
+不推荐——多调用点会变啰嗦，且无 batching 优化。
+
+**核心原则**：
+- 当新状态依赖前一次状态时，**永远用函数式更新**
+- 与 batching 无关——即使在 React 17 之前的同步 setState 也会出这问题，因为闭包值未变
+
+**何时不必用函数式**：新值完全独立于旧值，如 `setStatus('loading')`、`setUser(null)`。
+
+## 参考
+- [React Docs: Queueing a Series of State Updates](https://react.dev/learn/queueing-state-updates)
+- [React Hooks FAQ: Should I use functional updates?](https://react.dev/reference/react/useState#storing-information-from-previous-renders)
