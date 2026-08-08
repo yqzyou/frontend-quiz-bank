@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useProgressStore } from '@lib/progress-store';
-import { DEFAULT_SM2_STATE } from '@lib/sm2';
+import { DEFAULT_SM2_STATE, MS_PER_DAY } from '@lib/sm2';
 
 const SLUG = 'frontend/w1-react-basics/q01-usestate-closure';
 
@@ -14,6 +14,8 @@ describe('useProgressStore', () => {
     expect(state.answered).toEqual({});
     expect(state.bookmarks).toEqual([]);
     expect(state.sm2).toEqual({});
+    expect(state.streak).toEqual({ current: 0, lastStudyDate: '', history: [] });
+    expect(state.dailyMission).toEqual({ date: '', questionIds: [], completed: [] });
   });
 
   it('records an answer with attempts counter', () => {
@@ -44,7 +46,7 @@ describe('useProgressStore', () => {
     expect(useProgressStore.getState().bookmarks).not.toContain(SLUG);
   });
 
-  it('reset clears all three maps', () => {
+  it('reset clears all maps', () => {
     useProgressStore.getState().recordAnswer(SLUG, ['A'], true);
     useProgressStore.getState().toggleBookmark(SLUG);
     useProgressStore.getState().recordRating(SLUG, 'good', 1_000_000);
@@ -53,6 +55,8 @@ describe('useProgressStore', () => {
     expect(state.answered).toEqual({});
     expect(state.bookmarks).toEqual([]);
     expect(state.sm2).toEqual({});
+    expect(state.streak).toEqual({ current: 0, lastStudyDate: '', history: [] });
+    expect(state.dailyMission).toEqual({ date: '', questionIds: [], completed: [] });
   });
 
   it('exposes derived selectors that do not mutate state', () => {
@@ -78,7 +82,7 @@ describe('useProgressStore', () => {
       expect(entry).toBeDefined();
       expect(entry!.repetition).toBe(1);
       expect(entry!.interval).toBe(1);
-      expect(entry!.dueAt).toBe(1_000_000 + 1 * 24 * 60 * 60 * 1000);
+      expect(entry!.dueAt).toBe(1_000_000 + 1 * MS_PER_DAY);
     });
 
     it('accumulates state across multiple ratings', () => {
@@ -92,7 +96,7 @@ describe('useProgressStore', () => {
     it('respects the ratedAt timestamp argument', () => {
       useProgressStore.getState().recordRating(SLUG, 'good', 5_000_000);
       const entry = useProgressStore.getState().sm2[SLUG];
-      expect(entry!.dueAt).toBe(5_000_000 + 1 * 24 * 60 * 60 * 1000);
+      expect(entry!.dueAt).toBe(5_000_000 + 1 * MS_PER_DAY);
     });
   });
 
@@ -140,7 +144,6 @@ describe('useProgressStore', () => {
     it('starts from DEFAULT_SM2_STATE when no prior entry', () => {
       useProgressStore.getState().recordRating(SLUG, 'easy', 100);
       const entry = useProgressStore.getState().sm2[SLUG];
-      // repetition 0 -> 1, interval 1, easiness 2.5 -> 2.6
       expect(entry!.easiness).toBeGreaterThan(DEFAULT_SM2_STATE.easiness);
     });
   });
@@ -155,6 +158,9 @@ describe('useProgressStore', () => {
         due: 0,
         mastered: 0,
         learning: 0,
+        streak: 0,
+        missionDone: 0,
+        missionTotal: 0,
       });
     });
 
@@ -169,10 +175,10 @@ describe('useProgressStore', () => {
     });
 
     it('counts mastered as repetition >= 3', () => {
-      useProgressStore.getState().recordRating('a', 'good', 1);  // rep 1
-      useProgressStore.getState().recordRating('a', 'good', 2);  // rep 2
-      useProgressStore.getState().recordRating('a', 'good', 3);  // rep 3 -> mastered
-      useProgressStore.getState().recordRating('b', 'good', 4);  // rep 1
+      useProgressStore.getState().recordRating('a', 'good', 1);
+      useProgressStore.getState().recordRating('a', 'good', 2);
+      useProgressStore.getState().recordRating('a', 'good', 3); // rep 3 -> mastered
+      useProgressStore.getState().recordRating('b', 'good', 4); // rep 1
       const stats = useProgressStore.getState().getStats(1_000_000);
       expect(stats.mastered).toBe(1);
       expect(stats.learning).toBe(1);
@@ -191,8 +197,22 @@ describe('useProgressStore', () => {
       useProgressStore.getState().recordRating('b', 'good', 1);
       useProgressStore.getState().recordRating('b', 'good', 2); // rep 3 (mastered)
       const stats = useProgressStore.getState().getStats(0);
-      expect(stats.learning).toBe(1); // a
-      expect(stats.mastered).toBe(1); // b
+      expect(stats.learning).toBe(1);
+      expect(stats.mastered).toBe(1);
+    });
+
+    it('exposes current streak in stats', () => {
+      useProgressStore.getState().recordAnswer('a', ['A'], true);
+      const stats = useProgressStore.getState().getStats(Date.now());
+      expect(stats.streak).toBe(1);
+    });
+
+    it('exposes mission completion counts', () => {
+      useProgressStore.getState().ensureDailyMission(['a', 'b', 'c'], 3, 1_000_000);
+      useProgressStore.getState().recordAnswer('a', ['A'], true, 1_000_000);
+      const stats = useProgressStore.getState().getStats(1_000_000);
+      expect(stats.missionTotal).toBe(3);
+      expect(stats.missionDone).toBe(1);
     });
   });
 
@@ -217,5 +237,141 @@ describe('useProgressStore', () => {
       expect(useProgressStore.getState().getMasteredCount()).toBe(0);
     });
   });
+
+  // Streak system
+  describe('streak', () => {
+    it('starts at 0 with empty lastStudyDate', () => {
+      expect(useProgressStore.getState().streak).toEqual({
+        current: 0,
+        lastStudyDate: '',
+        history: [],
+      });
+    });
+
+    it('increments to 1 on first recordAnswer', () => {
+      useProgressStore.getState().recordAnswer('a', ['A'], true, 1_700_000_000_000);
+      expect(useProgressStore.getState().streak.current).toBe(1);
+      expect(useProgressStore.getState().streak.lastStudyDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('does not double-increment when answering twice on the same day', () => {
+      const now = 1_700_000_000_000;
+      useProgressStore.getState().recordAnswer('a', ['A'], true, now);
+      useProgressStore.getState().recordAnswer('b', ['B'], true, now + 60_000);
+      expect(useProgressStore.getState().streak.current).toBe(1);
+    });
+
+    it('increments again on the next calendar day', () => {
+      const day1 = 1_700_000_000_000;
+      const day2 = day1 + MS_PER_DAY;
+      useProgressStore.getState().recordAnswer('a', ['A'], true, day1);
+      useProgressStore.getState().recordAnswer('b', ['B'], true, day2);
+      expect(useProgressStore.getState().streak.current).toBe(2);
+    });
+
+    it('resets to 1 when there is a gap > 1 day', () => {
+      const day1 = 1_700_000_000_000;
+      const day3 = day1 + 3 * MS_PER_DAY;
+      useProgressStore.getState().recordAnswer('a', ['A'], true, day1);
+      useProgressStore.getState().recordAnswer('b', ['B'], true, day3);
+      expect(useProgressStore.getState().streak.current).toBe(1);
+      expect(useProgressStore.getState().streak.history).toContain(toDateString(day1));
+    });
+
+    it('updates on recordRating as well', () => {
+      useProgressStore.getState().recordRating('a', 'good', 1_700_000_000_000);
+      expect(useProgressStore.getState().streak.current).toBe(1);
+    });
+
+    it('records history of unique study dates', () => {
+      const day1 = 1_700_000_000_000;
+      const day2 = day1 + MS_PER_DAY;
+      useProgressStore.getState().recordAnswer('a', ['A'], true, day1);
+      useProgressStore.getState().recordAnswer('b', ['B'], true, day1 + 60_000); // same day
+      useProgressStore.getState().recordAnswer('c', ['C'], true, day2);
+      const history = useProgressStore.getState().streak.history;
+      expect(history.length).toBe(2);
+      expect(history).toContain(toDateString(day1));
+      expect(history).toContain(toDateString(day2));
+    });
+  });
+
+  // Daily mission
+  describe('ensureDailyMission', () => {
+    it('generates a mission of up to N slugs on first call for the day', () => {
+      const mission = useProgressStore.getState().ensureDailyMission(
+        ['a', 'b', 'c', 'd', 'e'],
+        3,
+        1_700_000_000_000,
+      );
+      expect(mission.date).toBe(toDateString(1_700_000_000_000));
+      expect(mission.questionIds.length).toBe(3);
+      expect(mission.completed).toEqual([]);
+    });
+
+    it('returns the existing mission on subsequent calls same day', () => {
+      const candidates = ['a', 'b', 'c', 'd', 'e'];
+      const first = useProgressStore.getState().ensureDailyMission(candidates, 3, 1_700_000_000_000);
+      const second = useProgressStore.getState().ensureDailyMission(candidates, 3, 1_700_000_000_000 + 60_000);
+      expect(second.questionIds).toEqual(first.questionIds);
+      expect(second.date).toBe(first.date);
+    });
+
+    it('regenerates on a new day', () => {
+      const candidates = ['a', 'b', 'c', 'd', 'e'];
+      const day1 = useProgressStore.getState().ensureDailyMission(candidates, 3, 1_700_000_000_000);
+      const day2 = useProgressStore.getState().ensureDailyMission(candidates, 3, 1_700_000_000_000 + MS_PER_DAY);
+      expect(day2.date).not.toBe(day1.date);
+    });
+
+    it('returns empty mission when candidates is empty', () => {
+      const mission = useProgressStore.getState().ensureDailyMission([], 3, 1_700_000_000_000);
+      expect(mission.questionIds).toEqual([]);
+    });
+
+    it('caps mission size when fewer candidates than limit', () => {
+      const mission = useProgressStore.getState().ensureDailyMission(['a', 'b'], 5, 1_700_000_000_000);
+      expect(mission.questionIds.length).toBe(2);
+    });
+
+    it('marks completed slugs after recordAnswer', () => {
+      const candidates = ['a', 'b', 'c'];
+      useProgressStore.getState().ensureDailyMission(candidates, 3, 1_700_000_000_000);
+      useProgressStore.getState().recordAnswer('a', ['A'], true, 1_700_000_000_000);
+      const mission = useProgressStore.getState().dailyMission;
+      expect(mission.completed).toContain('a');
+    });
+
+    it('does not add duplicates to completed', () => {
+      const candidates = ['a', 'b', 'c'];
+      useProgressStore.getState().ensureDailyMission(candidates, 3, 1_700_000_000_000);
+      useProgressStore.getState().recordAnswer('a', ['A'], true, 1_700_000_000_000);
+      useProgressStore.getState().recordAnswer('a', ['A'], true, 1_700_000_000_000 + 60_000);
+      const mission = useProgressStore.getState().dailyMission;
+      expect(mission.completed.filter((s) => s === 'a').length).toBe(1);
+    });
+
+    it('only marks completed when slug is in mission', () => {
+      const candidates = ['a', 'b', 'c'];
+      useProgressStore.getState().ensureDailyMission(candidates, 3, 1_700_000_000_000);
+      useProgressStore.getState().recordAnswer('z', ['A'], true, 1_700_000_000_000);
+      const mission = useProgressStore.getState().dailyMission;
+      expect(mission.completed).not.toContain('z');
+    });
+  });
+
+  describe('getDailyMission lazy selector', () => {
+    it('returns the current mission without regenerating', () => {
+      const mission = useProgressStore.getState().getDailyMission();
+      expect(mission).toEqual({ date: '', questionIds: [], completed: [] });
+    });
+  });
 });
 
+function toDateString(ms: number): string {
+  const d = new Date(ms);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
