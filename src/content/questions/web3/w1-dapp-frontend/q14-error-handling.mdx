@@ -1,0 +1,79 @@
+---
+id: web3-w1-q14
+title: "钱包常见错误码：4001 / -32000 / UNPREDICTABLE_GAS_LIMIT"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: intermediate
+type: multi-choice
+tags: [web3, error-handling, rpc, ux]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q08, web3-w1-q09]
+last_updated: 2026-08-08
+---
+
+## 题目
+当用户点击"授权"后钱包弹窗报 "执行 revert: ERC20: insufficient allowance" 但交易已上链，下列处理哪些是合理的？（多选）
+
+## 选项
+A. 区分"用户拒绝签名"（4001）与"链上 revert"（交易状态 failed）两类错误，分别给提示 ✓
+B. 用 `waitForTransactionReceipt` 拿回执，检查 `status === 'reverted'` 后调出"交易失败"toast ✓
+C. 用 `simulateContract` 在发起 write 前预演，提前发现 allowance 不足，避免无意义的上链 ✓
+D. 直接把原始错误 JSON 序列化展示给用户
+
+## 解析
+**钱包错误的两大类**：
+
+```ts
+// 1. 提交期错误 — 还没上链
+class UserRejectedRequestError extends Error { code = 4001 }
+class ChainMismatchError extends Error { /* wagmi/viem 内置 */ }
+
+// 2. 回执期错误 — 已上链但 revert
+{ status: 'reverted', transactionHash, gasUsed }
+```
+
+**完整错误处理范式**：
+
+```ts
+async function safeApprove(walletClient, publicClient, args) {
+  // 1) 预演 — 暴露 allowance 不足、ERC20 余额不足等逻辑错误
+  const { request } = await publicClient.simulateContract({
+    ...args,
+    account: walletClient.account,
+  });
+
+  // 2) 提交 — 此处只可能出 user rejected / 钱包内部错
+  let hash: Hash;
+  try {
+    hash = await walletClient.writeContract(request);
+  } catch (err) {
+    if (err.name === 'UserRejectedRequestError') {
+      toast.info('已取消'); return;
+    }
+    toast.error('钱包提交失败'); throw err;
+  }
+
+  // 3) 等回执 — 处理上链 revert
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status === 'reverted') {
+    toast.error('交易在链上 revert，请检查 allowance 或滑点');
+    return;
+  }
+  toast.success('授权成功');
+}
+```
+
+**为什么选项 D 错？** 用户看不懂 JSON。即使是开发者，也期望看到结构化的错误信息（"交易失败：ERC20: insufficient allowance"），而非 `{code:-32603,message:"...",data:{...}}`。
+
+**为什么选项 C 重要？**
+- simulateContract 在节点本地跑，不消耗 gas、不上链
+- 暴露 99% 的逻辑错误（allowance、余额、权限）
+- 让真实交易几乎只可能在网络抖动 / mempool 拥堵时失败
+
+## 参考
+- [EIP-1193 错误码](https://eips.ethereum.org/EIPS/eip-1193#rpc-errors)
+- [viem simulateContract](https://viem.sh/docs/contract/simulateContract)
+- [wagmi useWaitForTransactionReceipt](https://wagmi.sh/react/api/hooks/useWaitForTransactionReceipt)

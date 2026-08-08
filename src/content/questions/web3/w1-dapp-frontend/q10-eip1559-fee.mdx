@@ -1,0 +1,56 @@
+---
+id: web3-w1-q10
+title: "EIP-1559 交易费用：baseFee、maxFeePerGas、maxPriorityFeePerGas 的关系"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: advanced
+type: choice
+tags: [web3, gas, eip-1559, fee]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q03]
+last_updated: 2026-08-08
+---
+
+## 题目
+用户设置 `maxFeePerGas = 50 gwei`、`maxPriorityFeePerGas = 2 gwei`，当前区块 `baseFee = 30 gwei`。这笔交易实际支付的单价（gas 所耗）是多少？
+
+## 选项
+A. 50 gwei（用户上限）
+B. 32 gwei（baseFee + priorityFee，前提是不超过 maxFeePerGas） ✓
+C. 30 gwei（仅 baseFee）
+D. 2 gwei（仅 priorityFee）
+
+## 解析
+**EIP-1559 费用公式**：
+
+```text
+effectiveGasPrice = min(maxFeePerGas, baseFee + maxPriorityFeePerGas)
+                  = min(50, 30 + 2)
+                  = 32 gwei
+
+其中：
+- baseFee 部分（30 gwei）→ 被协议销毁（burn）
+- priorityFee 部分（2 gwei）→ 给验证者小费
+```
+
+**边界情况**：
+- 若 `baseFee = 49 gwei`：`min(50, 49+2) = 50`，priority 实际只得到 `50-49 = 1 gwei`
+- 若 `baseFee = 50 gwei`：`min(50, 52) = 50`，priority 实际得到 0 → 几乎不会被优先打包
+- 若 `baseFee > 50`：交易无法打包，留在 mempool 直到 baseFee 跌回 ≤ 50 或超时
+
+**前端建议**：
+- 用 `publicClient.estimateFeesPerGas()` 拿到当前 `baseFee` 和历史 priority 中位数
+- 设置 `maxFeePerGas = baseFee * 2 + maxPriorityFeePerGas` 给上限留余量
+- 紧急交易：`maxPriorityFeePerGas` 提高（如 2-5 gwei），`maxFeePerGas` 跟随 baseFee × 1.1
+
+**对比 Legacy（type 0）**：
+- Legacy 用单一 `gasPrice`，无销毁机制
+- 1559 把"上限"和"小费"解耦，让费用估算更稳定
+
+## 参考
+- [EIP-1559: Fee market change](https://eips.ethereum.org/EIPS/eip-1559)
+- [viem estimateFeesPerGas](https://viem.sh/docs/actions/public/estimateFeesPerGas)
+- [ultrasound.money — 销毁实时看板](https://ultrasound.money)

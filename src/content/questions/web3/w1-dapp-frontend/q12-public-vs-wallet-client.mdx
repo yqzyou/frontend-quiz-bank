@@ -1,0 +1,69 @@
+---
+id: web3-w1-q12
+title: "viem PublicClient vs WalletClient：节点与钱包两种角色"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: basic
+type: choice
+tags: [web3, viem, rpc, architecture]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q11, web3-w1-q08]
+last_updated: 2026-08-08
+---
+
+## 题目
+在 viem 中，`PublicClient` 和 `WalletClient` 的核心区别是什么？
+
+## 选项
+A. PublicClient 用于主网、WalletClient 用于测试网
+B. PublicClient 通过 HTTP/WS 直连节点做只读查询；WalletClient 通过钱包扩展做需要私钥签名的动作 ✓
+C. WalletClient 包含 PublicClient 的全部能力
+D. PublicClient 由 viem 提供，WalletClient 由 wagmi 提供
+
+## 解析
+**viem 的 client 抽象**：
+
+```ts
+import { createPublicClient, http } from 'viem';
+import { mainnet } from 'viem/chains';
+import { createWalletClient, custom } from 'viem';
+
+// 只读 — 直接访问 RPC 节点
+const publicClient = createPublicClient({
+  chain: mainnet,
+  transport: http('https://eth.llamarpc.com'),
+});
+
+// 写入 — 委托浏览器钱包签名
+const walletClient = createWalletClient({
+  chain: mainnet,
+  transport: custom(window.ethereum!),
+});
+```
+
+**职责对比**：
+
+| 能力 | PublicClient | WalletClient |
+|------|--------------|---------------|
+| `getBlockNumber` / `getBalance` / `readContract` | ✓ | ✗ |
+| `simulateContract` / `estimateGas` | ✓ | ✗ |
+| `sendTransaction` / `writeContract` | ✗ | ✓ |
+| `signMessage` / `signTypedData` | ✗ | ✓ |
+| 私钥 | ✗（节点不持有） | ✓（在钱包内，不暴露） |
+
+**transport 的差异**：
+- `http()` / `webSocket()` → 直连节点
+- `custom(window.ethereum)` → 通过 EIP-1193 provider 调用钱包
+
+**为什么不让 WalletClient 包含 PublicClient 能力？**
+- 关注点分离：查询不需要用户的私钥，没必要走钱包（钱包弹窗会损害 UX）
+- 错误归因：节点报错（429 rate limit）vs 钱包报错（user rejected）应区分处理
+
+**进阶**：在 wagmi v2 中 `useClient()` 返回的是 PublicClient，`useConnectorClient()` 返回 WalletClient，配合 `useWalletClient()` 旧 hook 仍可用但已废弃。
+
+## 参考
+- [viem Clients 文档](https://viem.sh/docs/clients/intro)
+- [viem Sending Transactions](https://viem.sh/docs/clients/wallet#sending-transactions)

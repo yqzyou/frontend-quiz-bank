@@ -1,0 +1,52 @@
+---
+id: web3-w1-q09
+title: "ERC-20 approve/allowance 模型：为什么无限授权是隐患"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: intermediate
+type: choice
+tags: [web3, erc20, allowance, security]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q08]
+last_updated: 2026-08-08
+---
+
+## 题目
+许多 dApp 让用户调用 `approve(spender, MaxUint256)` 来"省去下次再授权"。这种做法的核心风险是什么？
+
+## 选项
+A. gas 费更高，因为 MaxUint256 编码后字节更长
+B. spender 合约任何时候都可以转走用户在该 token 上的全部余额，即使 dApp 后来被黑 ✓
+C. 链上存储费用由用户承担
+D. 违反 ERC-20 标准，可能被代币合约 revert
+
+## 解析
+**ERC-20 授权模型**：
+
+```solidity
+function transferFrom(address from, address to, uint256 amount) external returns (bool);
+function approve(address spender, uint256 amount) external returns (bool);
+function allowance(owner, spender) external view returns (uint256);
+```
+
+`approve(MaxUint256)` 后，`spender` 在 owner 余额允许的范围内可以**任意次** `transferFrom`，**无需再次征求用户同意**。
+
+**真实事故**：
+- 2020 年 Lendf.Me / Uniswap 仿盘被黑 → 攻击者通过被植入后门的合约复用用户已有 allowance 抽干余额
+- 多起 "approval phishing"：钓鱼站点诱导用户签 approve，几小时后转账
+
+**最佳实践**：
+1. **精确授权**：每次只 approve 即将花费的金额（如 `approve(swapRouter, exactAmount)`）
+2. **Permit / EIP-2612**：用签名代替 on-chain approve，无需两次交易
+3. **Revoke 工具**：定期用 `revoke.cash` 清理不再使用的 allowance
+4. **前端透明化**：在 approve 弹窗里展示 "授权 100 USDC 给 swap.example.com"
+
+**注意 D 错**：MaxUint256 是合法 uint256，不违反 ERC-20 标准；问题在于"安全"而非"语法"。
+
+## 参考
+- [EIP-20: Token Standard](https://eips.ethereum.org/EIPS/eip-20)
+- [EIP-2612: Permit Extension](https://eips.ethereum.org/EIPS/eip-2612)
+- [revoke.cash — Allowance 检查工具](https://revoke.cash)

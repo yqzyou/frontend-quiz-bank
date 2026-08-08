@@ -1,0 +1,66 @@
+---
+id: web3-w1-q08
+title: "eth_call vs eth_sendTransaction：read 和 write 的本质差异"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: basic
+type: choice
+tags: [web3, rpc, evm, read-write]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q04, web3-w1-q03]
+last_updated: 2026-08-08
+---
+
+## 题目
+下列关于 `eth_call` 与 `eth_sendTransaction` 的差异，说法最准确的是？
+
+## 选项
+A. `eth_call` 不消耗 gas，不上链，结果可立即返回；`eth_sendTransaction` 广播交易、消耗 gas、需要矿工/验证者打包 ✓
+B. `eth_call` 比 `eth_sendTransaction` 慢，因为它要等待确认
+C. `eth_call` 用于主网，`eth_sendTransaction` 用于测试网
+D. `eth_call` 只能调用 view/pure 函数，`eth_sendTransaction` 能调用所有函数
+
+## 解析
+**关键差异**：
+
+| 维度 | `eth_call` | `eth_sendTransaction` |
+|------|-----------|----------------------|
+| 是否上链 | 否（在节点本地模拟） | 是（广播到 mempool） |
+| 是否消耗 gas | 否（虽然返回 gas 估算可读值） | 是（按实际用量扣费） |
+| 是否需要签名 | 否 | 是（由钱包签发） |
+| 返回值 | 函数 ABI 解码后的返回数据 | 32 字节交易 hash |
+| 状态变更 | 不会写入链 | 会写入链（成功时） |
+| 网络往返 | 1 次（同步） | 2 次（提交 + 等回执） |
+
+**注意选项 D 的微妙错误**：`eth_call` 在节点本地模拟时**也能调用非 view 函数**（比如模拟一笔 swap 看输出多少），只是不会真的提交。所以 D 错在 "只能调用 view/pure"。
+
+**典型用法**：
+
+```ts
+// READ — 用 PublicClient
+const price = await publicClient.readContract({
+  address: oracle,
+  abi: erc20Abi,
+  functionName: 'latestAnswer',
+});
+
+// WRITE — 用 WalletClient（需用户签名）
+const hash = await walletClient.writeContract({
+  address: token,
+  abi: erc20Abi,
+  functionName: 'transfer',
+  args: [recipient, amount],
+});
+
+// 等待 1 个确认
+const receipt = await publicClient.waitForTransactionReceipt({ hash });
+```
+
+**常见陷阱**：把 `writeContract` 的返回值当作函数返回值用——它返回的是交易 hash，不是 ABI 解码结果。要拿到事件 logs 必须等回执再 `parseEventLogs`。
+
+## 参考
+- [eth_call spec — Ethereum JSON-RPC](https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_call)
+- [viem readContract vs writeContract](https://viem.sh/docs/contract/readContract)

@@ -1,0 +1,74 @@
+---
+id: web3-w1-q13
+title: "wallet_switchEthereumChain vs wallet_addEthereumChain：何时该用哪个"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: intermediate
+type: choice
+tags: [web3, rpc, eip-3085, eip-3326, multi-chain]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q11, web3-w1-q12]
+last_updated: 2026-08-08
+---
+
+## 题目
+你的 dApp 部署在 Base（chainId 8453）但用户当前连着 Ethereum 主网（chainId 1）。最推荐的引导顺序是？
+
+## 选项
+A. 直接调 `wallet_switchEthereumChain`，捕获 4902（链未添加）后再调 `wallet_addEthereumChain` ✓
+B. 永远先 add 再 switch，避免少链报错
+C. 不切换，让用户手动在钱包里改
+D. 用 `wallet_switchAccount` 切换账户
+
+## 解析
+**EIP-3326（switch） vs EIP-3085（add）**：
+
+| RPC | 用途 | 成功响应 | 失败响应 |
+|-----|------|----------|----------|
+| `wallet_switchEthereumChain` | 切换到已添加的链 | `null` | `4902` (Chain not added) / `4001` (User rejected) |
+| `wallet_addEthereumChain` | 添加一条新链 | `null` | `4001` / `-32603` |
+
+**推荐模式（先 switch、失败再 add）**：
+
+```ts
+async function ensureChain(walletClient, chain) {
+  try {
+    await walletClient.switchChain({ id: chain.id });
+    return;
+  } catch (err) {
+    if (err.code !== 4902 && !err.message.includes('Unrecognized chain ID')) {
+      throw err; // 用户拒绝或其他错误
+    }
+  }
+  await walletClient.addChain({ chain });
+}
+
+await ensureChain(walletClient, {
+  id: 8453,
+  name: 'Base',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: { default: { http: ['https://mainnet.base.org'] } },
+  blockExplorers: { default: { name: 'Basescan', url: 'https://basescan.org' } },
+});
+```
+
+**viem 中链定义可直接从 `viem/chains` 导入**：
+
+```ts
+import { base } from 'viem/chains';
+await walletClient.switchChain({ id: base.id });
+```
+
+**为什么选项 B 错？** 已添加的链再调 `addChain` 钱包可能直接拒绝或弹两次确认，UX 差。
+
+**为什么选项 A 更好？**
+- 大多数用户在主网，没装 Base → switch 报 4902 → addChain → 一次确认即可
+- 已装 Base → switch 直接成功 → 0 额外步骤
+
+## 参考
+- [EIP-3326: wallet_switchEthereumChain](https://eips.ethereum.org/EIPS/eip-3326)
+- [EIP-3085: wallet_addEthereumChain](https://eips.ethereum.org/EIPS/eip-3085)
+- [viem chain list](https://viem.sh/chains)

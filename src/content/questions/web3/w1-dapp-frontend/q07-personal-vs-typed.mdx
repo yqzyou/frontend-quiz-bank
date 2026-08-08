@@ -1,0 +1,73 @@
+---
+id: web3-w1-q07
+title: "personal_sign vs signTypedData_v4：哪个更安全、UX 更好"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: intermediate
+type: multi-choice
+tags: [web3, signing, eip-712, ux]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q02, web3-w1-q06]
+last_updated: 2026-08-08
+---
+
+## 题目
+关于 `personal_sign` 与 `signTypedData_v4`（EIP-712）的对比，下列说法正确的有哪些？（多选）
+
+## 选项
+A. `signTypedData_v4` 把结构化字段拆开签名，钱包 UI 能显示字段名和值 ✓
+B. `personal_sign` 让用户对一个十六进制或 utf-8 字符串签名，UI 通常展示原文，长消息难以阅读 ✓
+C. `signTypedData_v4` 的签名结果与 `personal_sign` 不能混用恢复地址（哈希算法不同） ✓
+D. `signTypedData_v4` 适合 NFT 交易、permit 等 EIP-712 兼容合约；`personal_sign` 用于自由文本（如 SIWE） ✓
+
+## 解析
+**两种签名的本质区别**：
+
+| 维度 | `personal_sign` | `signTypedData_v4` |
+|------|-----------------|---------------------|
+| 输入 | 字符串（utf-8 / 0x hex） | EIP-712 结构化对象 |
+| 钱包 UI | 一坨文本，长消息折叠 | 字段名 + 值分行展示 |
+| 哈希 | `\x19Ethereum Signed Message:\n{len}` + msg | `\x19\x01` + `domainSeparator` + `structHash` |
+| 适用 | SIWE、自定义协议消息 | permit、orderbook、EIP-712 合约调用 |
+
+**EIP-712 示例**：
+
+```ts
+const types = {
+  Permit: [
+    { name: 'owner', type: 'address' },
+    { name: 'spender', type: 'address' },
+    { name: 'value', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' },
+  ],
+};
+
+const message = { owner, spender, value, nonce, deadline };
+const sig = await walletClient.signTypedData({
+  domain: { name: 'MyToken', version: '1', chainId: 1, verifyingContract },
+  types,
+  primaryType: 'Permit',
+  message,
+});
+```
+
+钱包里看到的是：
+```
+Permit
+owner:    0x1234...abcd
+spender:  0x5678...ef01
+value:    100.0 MYT
+nonce:    7
+deadline: 2026-08-08 12:00
+```
+
+**反模式**：把 EIP-712 数据 JSON.stringify 后用 `personal_sign` 签名——丢失字段语义，用户无法看清签了什么。
+
+## 参考
+- [EIP-712: Typed structured data hashing and signing](https://eips.ethereum.org/EIPS/eip-712)
+- [MetaMask 文档：Signing Data](https://docs.metamask.io/wallet/how-to/sign-data/)
+- [viem signTypedData](https://viem.sh/docs/clients/signing/signTypedData)

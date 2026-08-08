@@ -1,0 +1,78 @@
+---
+id: web3-w1-q11
+title: "wagmi useAccount vs useSigner：状态与动作分离的设计"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: intermediate
+type: multi-choice
+tags: [web3, wagmi, react-hooks, viem]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q05, web3-w1-q12]
+last_updated: 2026-08-08
+---
+
+## 题目
+在 wagmi v2 中，下列关于 hooks 的描述正确的有哪些？（多选）
+
+## 选项
+A. `useAccount()` 返回连接状态（address、chain、isConnecting、isConnected），但不直接触发连接动作 ✓
+B. `useConnect()` 返回 `connectors` 与 `connect()` 方法，用来主动呼起钱包 ✓
+C. 在 wagmi v2 中 `useSigner()` 已被移除，改用 `useConnectorClient()` 拿到 `WalletClient` ✓
+D. `useAccount` 与 `useSigner` 是同一个 hook 的别名
+
+## 解析
+**wagmi v2 的状态/动作分离原则**：
+- 状态查询类（`useAccount`、`useChainId`、`useBalance`）：只读，订阅 store
+- 动作触发类（`useConnect`、`useDisconnect`、`useSendTransaction`）：返回 mutation 函数
+
+**为什么这样设计？**
+- 状态变化（断线/切链）应自动重渲染
+- 动作调用（用户点击按钮才连钱包）不应在每次渲染都触发
+
+**典型用法**：
+
+```tsx
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { injected } from 'wagmi/connectors';
+
+function Header() {
+  const { address, isConnected } = useAccount();
+  const { connect } = useConnect();
+  const { disconnect } = useDisconnect();
+
+  if (!isConnected) {
+    return <button onClick={() => connect({ connector: injected() })}>连接钱包</button>;
+  }
+  return (
+    <div>
+      <code>{address}</code>
+      <button onClick={() => disconnect()}>断开</button>
+    </div>
+  );
+}
+```
+
+**wagmi v2 移除 useSigner 的原因**：
+- `Signer` 是 ethers v5 概念，v6 改用 `JsonRpcSigner`
+- wagmi v2 统一使用 viem 的 `WalletClient`，更类型安全
+
+**用 useConnectorClient 拿 WalletClient**：
+
+```tsx
+import { useConnectorClient } from 'wagmi';
+import { encodeFunctionData } from 'viem';
+
+const { data: walletClient } = useConnectorClient();
+await walletClient?.sendTransaction({
+  to: contract,
+  data: encodeFunctionData({ abi, functionName: 'mint', args: [] }),
+});
+```
+
+## 参考
+- [wagmi v2 Hooks](https://wagmi.sh/react/api/hooks)
+- [viem WalletClient](https://viem.sh/docs/clients/wallet)
+- [wagmi v2 Migration Guide](https://wagmi.sh/react/guides/migrate-from-v1-to-v2)

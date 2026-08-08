@@ -1,0 +1,63 @@
+---
+id: web3-w1-q06
+title: "SIWE（Sign-In with Ethereum）：用钱包代替密码"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: intermediate
+type: choice
+tags: [web3, auth, siwe, signing, eip-4361]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q02, web3-w1-q07]
+last_updated: 2026-08-08
+---
+
+## 题目
+SIWE（EIP-4361）让用户用钱包签名代替邮箱/密码登录。一个安全的 SIWE 登录流程必须验证消息中至少下列哪一组字段？
+
+## 选项
+A. domain、address、chainId ✓
+B. from、to、value
+C. nonce、gasLimit、maxFeePerGas
+D. contractAddress、tokenId、royalty
+
+## 解析
+**SIWE 消息核心字段**（EIP-4361）：
+
+```text
+service.example wants you to sign in with your Ethereum account:
+0x1234...abcd
+
+I accept the ServiceOrg Terms of Service (https://service.example/tos)
+
+URI: https://service.example/login
+Version: 1
+Chain ID: 1
+Nonce: xyz789
+Issued At: 2026-08-08T10:00:00Z
+Expiration Time: 2026-08-08T10:10:00Z
+Resources:
+- ipfs://bafy...catalog
+```
+
+**服务端必须校验**：
+- `domain` 与当前请求的 Host 头一致 → 防钓鱼（攻击者拿到签名也无法在别的站点复用）
+- `address` 与签名恢复地址一致（`ecrecover`）
+- `nonce` 是本次会话下发的、未被消费过的 → 防重放
+- `expiration-time` 未过期
+- `chain-id` 与系统支持链一致
+
+**典型流程**：
+1. 前端 `GET /auth/nonce` 拿到一次性 nonce
+2. 用 `signMessage(siweMessage)` 让用户签名
+3. 把 `{ message, signature }` POST 到 `/auth/verify`
+4. 服务端用 `viem.recoverMessageAddress` 校验后建立会话（cookie 或 JWT）
+
+**避免**：直接让用户签"Login"字符串——没有 domain/nonce 绑定，签名一旦泄漏可被任意站点复用。
+
+## 参考
+- [EIP-4361: Sign-In with Ethereum](https://eips.ethereum.org/EIPS/eip-4361)
+- [siwe 官方库](https://github.com/spruceid/siwe)
+- [viem siweAction](https://viem.sh/docs/siwe/actions/verifySiweMessage)

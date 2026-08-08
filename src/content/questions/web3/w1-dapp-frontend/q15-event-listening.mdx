@@ -1,0 +1,81 @@
+---
+id: web3-w1-q15
+title: "事件监听：polling vs WebSocket — 延迟与成本的取舍"
+category: web3
+sub_category: dapp-frontend
+week: 1
+difficulty: advanced
+type: choice
+tags: [web3, rpc, websocket, polling, realtime]
+source: handwritten
+status: draft
+language: zh
+related: [web3-w1-q08, web3-w1-q12]
+last_updated: 2026-08-08
+---
+
+## 题目
+你需要监听某合约的 `Transfer` 事件，给用户做实时通知。下列策略中，资源消耗与延迟最平衡的方案是？
+
+## 选项
+A. 每 1 秒 `eth_getLogs({ fromBlock: 'latest' })` 全量轮询
+B. 在前端建立 `webSocketProvider`，订阅合约事件 ✓
+C. 服务端跑一条 ws，转发到前端 EventSource（SSE）
+D. 用户每次刷新页面拉一次
+
+## 解析
+**四种方案对比**：
+
+| 方案 | 实时性 | 成本 | 实现复杂度 | 适用场景 |
+|------|--------|------|------------|----------|
+| 1s polling eth_getLogs | ~1s | 高（每秒 RPC 调用 + 易触发限流） | 低 | 不推荐 |
+| 浏览器 WebSocket | <1s | 中（一条 ws 长连接） | 低 | 简单 dApp |
+| 服务端 WS → SSE 转发 | <1s | 中-高（需服务器） | 高 | 多用户生产环境 |
+| 刷新拉取 | 分钟-小时 | 极低 | 极低 | 偶发查询 |
+
+**前端 WS 订阅示例（viem）**：
+
+```ts
+import { createPublicClient, webSocket, parseAbiItem } from 'viem';
+import { mainnet } from 'viem/chains';
+
+const client = createPublicClient({
+  chain: mainnet,
+  transport: webSocket('wss://eth.public-rpc.com'),
+});
+
+const unwatch = client.watchEvent({
+  address: '0xa0b8…eb48',
+  event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+  onLogs: (logs) => {
+    for (const log of logs) {
+      console.log('Transfer:', log.args);
+      showToast(`收到 ${formatUnits(log.args.value, 6)} USDC`);
+    }
+  },
+});
+
+// 清理
+useEffect(() => () => unwatch(), []);
+```
+
+**为什么选项 A 不好？**
+- 大多数公共 RPC（Infura/Alchemy）对免费层有 RPS 限制（如 10/s）
+- 全量 latest 块拉取还容易丢块（出块时间短时）
+
+**为什么选项 B 是默认推荐？**
+- WebSocket 由节点维持，按需推送
+- viem 内部已处理重连与 gap-fill（断线期间丢的事件会补拉）
+- 单个用户场景无需服务端
+
+**为什么选项 C 在生产中更好？**
+- 服务端可聚合多个用户订阅同一条 ws，减少节点连接数
+- 自建鉴权 / 限流，避免恶意用户消耗你的 RPC 配额
+- 通过 SSE 兼容性更好（HTTP 协议）
+
+**注意**：React 18/19 严格模式下 `useEffect` 会执行两次，必须在 cleanup 中 `unwatch()`，否则订阅泄漏。
+
+## 参考
+- [viem watchEvent](https://viem.sh/docs/actions/public/watchEvent)
+- [Alchemy WebSocket API](https://docs.alchemy.com/reference/alchemy-websocket-api-quickstart)
+- [EIP-1474: Remote Procedure Call Specification](https://eips.ethereum.org/EIPS/eip-1474)
