@@ -174,4 +174,68 @@ describe('<QuizCard />', () => {
     render(<QuizCard question={buildQuestion()} slug={SLUG} />);
     expect(screen.getByText(/正确/i)).toBeInTheDocument();
   });
+
+  describe('SM-2 self-rating', () => {
+    it('shows rating buttons after submitting a choice question', async () => {
+      const user = userEvent.setup();
+      render(<QuizCard question={buildQuestion()} slug={SLUG} />);
+      await user.click(screen.getByRole('button', { name: /^A\b/ }));
+      await user.click(screen.getByRole('button', { name: /提交/i }));
+
+      expect(screen.getByRole('button', { name: /忘了|Again/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /勉强|Hard/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /记得|Good/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /轻松|Easy/i })).toBeInTheDocument();
+    });
+
+    it('does not show rating buttons before submit on choice questions', () => {
+      render(<QuizCard question={buildQuestion()} slug={SLUG} />);
+      expect(screen.queryByRole('button', { name: /忘了|Again/i })).toBeNull();
+    });
+
+    it('records SM-2 rating in the store when clicked', async () => {
+      const user = userEvent.setup();
+      render(<QuizCard question={buildQuestion()} slug={SLUG} />);
+      await user.click(screen.getByRole('button', { name: /^A\b/ }));
+      await user.click(screen.getByRole('button', { name: /提交/i }));
+      await user.click(screen.getByRole('button', { name: /记得|Good/i }));
+
+      const entry = useProgressStore.getState().sm2[SLUG];
+      expect(entry).toBeDefined();
+      expect(entry!.repetition).toBe(1);
+      expect(entry!.interval).toBe(1);
+    });
+
+    it('shows next-review hint after rating', async () => {
+      const user = userEvent.setup();
+      render(<QuizCard question={buildQuestion()} slug={SLUG} />);
+      await user.click(screen.getByRole('button', { name: /^A\b/ }));
+      await user.click(screen.getByRole('button', { name: /提交/i }));
+      await user.click(screen.getByRole('button', { name: /记得|Good/i }));
+
+      expect(screen.getByText(/下次复习|明日/i)).toBeInTheDocument();
+    });
+
+    it('shows rating buttons immediately for interview questions', () => {
+      const interview = buildQuestion({});
+      interview.frontmatter.type = 'interview';
+      interview.options = [];
+      render(<QuizCard question={interview} slug={SLUG} />);
+      expect(screen.getByRole('button', { name: /记得|Good/i })).toBeInTheDocument();
+    });
+
+    it('updates the rating when a different rating is clicked later', async () => {
+      const user = userEvent.setup();
+      render(<QuizCard question={buildQuestion()} slug={SLUG} />);
+      await user.click(screen.getByRole('button', { name: /^A\b/ }));
+      await user.click(screen.getByRole('button', { name: /提交/i }));
+      await user.click(screen.getByRole('button', { name: /记得|Good/i }));
+      await user.click(screen.getByRole('button', { name: /轻松|Easy/i }));
+
+      const entry = useProgressStore.getState().sm2[SLUG];
+      // good: rep 1, easy: rep 2 (since good already moved it forward)
+      // Actually after good, entry.repetition = 1; after easy, entry.repetition = 2
+      expect(entry!.repetition).toBe(2);
+    });
+  });
 });

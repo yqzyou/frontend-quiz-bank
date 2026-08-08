@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ParsedQuestion, ChoiceOption } from '@lib/types';
+import type { ParsedQuestion, ChoiceOption, Sm2Rating, Sm2State } from '@lib/types';
 import { useProgressStore } from '@lib/progress-store';
 
 interface QuizCardProps {
@@ -17,13 +17,35 @@ function optionLabel(o: ChoiceOption): string {
   return `${o.key}. ${o.text}`;
 }
 
+const RATING_LABELS: { rating: Sm2Rating; zh: string; en: string; hint: string }[] = [
+  { rating: 'again', zh: '忘了', en: 'Again', hint: '今日再次复习' },
+  { rating: 'hard', zh: '勉强', en: 'Hard', hint: '稍后再练' },
+  { rating: 'good', zh: '记得', en: 'Good', hint: '明日再来' },
+  { rating: 'easy', zh: '轻松', en: 'Easy', hint: '数日后再见' },
+];
+
+function formatDueHint(dueAt: number, now: number = Date.now()): string {
+  const dayMs = 24 * 60 * 60 * 1000;
+  const diff = dueAt - now;
+  if (diff <= 0) return '今日再次复习';
+  const days = Math.round(diff / dayMs);
+  if (days === 0) return '今日稍后';
+  if (days === 1) return '明日复习';
+  if (days < 7) return `${days} 天后复习`;
+  if (days < 30) return `${Math.round(days / 7)} 周后复习`;
+  return `${Math.round(days / 30)} 个月后复习`;
+}
+
 export function QuizCard({ question, slug }: QuizCardProps) {
   const isChoice = question.frontmatter.type === 'choice' || question.frontmatter.type === 'multi-choice';
   const isMulti = question.frontmatter.type === 'multi-choice';
+  const isInterview = question.frontmatter.type === 'interview' || question.frontmatter.type === 'code';
 
   const recorded = useProgressStore((s) => s.answered[slug]);
+  const sm2Entry = useProgressStore((s) => s.sm2[slug]);
   const bookmarks = useProgressStore((s) => s.bookmarks);
   const recordAnswer = useProgressStore((s) => s.recordAnswer);
+  const recordRating = useProgressStore((s) => s.recordRating);
   const toggleBookmark = useProgressStore((s) => s.toggleBookmark);
 
   const isBookmarked = bookmarks.includes(slug);
@@ -50,6 +72,11 @@ export function QuizCard({ question, slug }: QuizCardProps) {
     () => submitted && arraysEqualAsSets([...picked], correctKeys),
     [submitted, picked, correctKeys],
   );
+
+  // Rating panel is shown when:
+  //   - choice questions are submitted, OR
+  //   - interview/code questions are viewed (no submit step)
+  const showRating = isInterview ? true : submitted;
 
   function handlePick(key: string) {
     if (submitted) return;
@@ -80,6 +107,10 @@ export function QuizCard({ question, slug }: QuizCardProps) {
 
   function handleBookmark() {
     toggleBookmark(slug);
+  }
+
+  function handleRate(rating: Sm2Rating) {
+    recordRating(slug, rating);
   }
 
   return (
@@ -202,8 +233,60 @@ export function QuizCard({ question, slug }: QuizCardProps) {
           <div className="mt-2 whitespace-pre-line">{question.referenceAnswer}</div>
         </details>
       )}
+
+      {showRating && (
+        <Sm2RatingPanel
+          entry={sm2Entry}
+          onRate={handleRate}
+        />
+      )}
     </article>
   );
 }
 
+interface Sm2RatingPanelProps {
+  entry?: Sm2State;
+  onRate: (rating: Sm2Rating) => void;
+}
+
+function Sm2RatingPanel({ entry, onRate }: Sm2RatingPanelProps) {
+  const now = Date.now();
+  return (
+    <section
+      aria-label="自我评分"
+      className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-200">自我评分</h3>
+        {entry && (
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {entry.dueAt <= now ? '到期' : '下次复习'}：{formatDueHint(entry.dueAt, now)}
+          </p>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {RATING_LABELS.map(({ rating, zh, en, hint }) => (
+          <button
+            key={rating}
+            type="button"
+            onClick={() => onRate(rating)}
+            aria-label={`${zh} (${en})`}
+            title={hint}
+            className="flex flex-col items-center gap-0.5 rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-medium text-slate-700 transition hover:border-indigo-400 hover:bg-indigo-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-500 dark:hover:bg-indigo-950"
+          >
+            <span className="text-sm font-semibold">{zh}</span>
+            <span className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{en}</span>
+          </button>
+        ))}
+      </div>
+      {entry && (
+        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+          记忆强度 EF {entry.easiness.toFixed(2)} · 连续 {entry.repetition} 次 · 间隔 {entry.interval} 天
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default QuizCard;
+

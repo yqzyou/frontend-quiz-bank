@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useProgressStore } from '@lib/progress-store';
+import { DEFAULT_SM2_STATE } from '@lib/sm2';
 
 const SLUG = 'frontend/w1-react-basics/q01-usestate-closure';
 
@@ -12,6 +13,7 @@ describe('useProgressStore', () => {
     const state = useProgressStore.getState();
     expect(state.answered).toEqual({});
     expect(state.bookmarks).toEqual([]);
+    expect(state.sm2).toEqual({});
   });
 
   it('records an answer with attempts counter', () => {
@@ -42,13 +44,15 @@ describe('useProgressStore', () => {
     expect(useProgressStore.getState().bookmarks).not.toContain(SLUG);
   });
 
-  it('reset clears both maps', () => {
+  it('reset clears all three maps', () => {
     useProgressStore.getState().recordAnswer(SLUG, ['A'], true);
     useProgressStore.getState().toggleBookmark(SLUG);
+    useProgressStore.getState().recordRating(SLUG, 'good', 1_000_000);
     useProgressStore.getState().reset();
     const state = useProgressStore.getState();
     expect(state.answered).toEqual({});
     expect(state.bookmarks).toEqual([]);
+    expect(state.sm2).toEqual({});
   });
 
   it('exposes derived selectors that do not mutate state', () => {
@@ -65,4 +69,80 @@ describe('useProgressStore', () => {
   it('returns undefined for unknown slug from getAnswer', () => {
     expect(useProgressStore.getState().getAnswer('nope')).toBeUndefined();
   });
+
+  // SM-2 integration
+  describe('recordRating', () => {
+    it('creates an SM-2 entry on first rating', () => {
+      useProgressStore.getState().recordRating(SLUG, 'good', 1_000_000);
+      const entry = useProgressStore.getState().sm2[SLUG];
+      expect(entry).toBeDefined();
+      expect(entry!.repetition).toBe(1);
+      expect(entry!.interval).toBe(1);
+      expect(entry!.dueAt).toBe(1_000_000 + 1 * 24 * 60 * 60 * 1000);
+    });
+
+    it('accumulates state across multiple ratings', () => {
+      useProgressStore.getState().recordRating(SLUG, 'good', 1_000_000);
+      useProgressStore.getState().recordRating(SLUG, 'good', 2_000_000);
+      const entry = useProgressStore.getState().sm2[SLUG];
+      expect(entry!.repetition).toBe(2);
+      expect(entry!.interval).toBe(6);
+    });
+
+    it('respects the ratedAt timestamp argument', () => {
+      useProgressStore.getState().recordRating(SLUG, 'good', 5_000_000);
+      const entry = useProgressStore.getState().sm2[SLUG];
+      expect(entry!.dueAt).toBe(5_000_000 + 1 * 24 * 60 * 60 * 1000);
+    });
+  });
+
+  describe('getDueSlugs', () => {
+    it('returns empty when nothing rated yet', () => {
+      expect(useProgressStore.getState().getDueSlugs(1_000_000)).toEqual([]);
+    });
+
+    it('returns slugs whose dueAt <= now', () => {
+      useProgressStore.getState().recordRating('a', 'good', 0); // due in 1 day
+      useProgressStore.getState().recordRating('b', 'again', 0); // due immediately
+      const due = useProgressStore.getState().getDueSlugs(0);
+      expect(due).toContain('b');
+      expect(due).not.toContain('a');
+    });
+
+    it('includes slugs exactly at the threshold', () => {
+      const now = 1_000_000;
+      useProgressStore.getState().recordRating('x', 'again', now); // dueAt = now
+      const due = useProgressStore.getState().getDueSlugs(now);
+      expect(due).toContain('x');
+    });
+
+    it('excludes future-due slugs', () => {
+      useProgressStore.getState().recordRating('a', 'good', 0); // due in 1 day
+      const due = useProgressStore.getState().getDueSlugs(1000);
+      expect(due).toEqual([]);
+    });
+  });
+
+  describe('getSm2Entry', () => {
+    it('returns undefined for unrated slug', () => {
+      expect(useProgressStore.getState().getSm2Entry('nope')).toBeUndefined();
+    });
+
+    it('returns the entry for a rated slug', () => {
+      useProgressStore.getState().recordRating(SLUG, 'good', 1_000_000);
+      const entry = useProgressStore.getState().getSm2Entry(SLUG);
+      expect(entry).toBeDefined();
+      expect(entry!.repetition).toBe(1);
+    });
+  });
+
+  describe('default SM-2 entry on first rating', () => {
+    it('starts from DEFAULT_SM2_STATE when no prior entry', () => {
+      useProgressStore.getState().recordRating(SLUG, 'easy', 100);
+      const entry = useProgressStore.getState().sm2[SLUG];
+      // repetition 0 -> 1, interval 1, easiness 2.5 -> 2.6
+      expect(entry!.easiness).toBeGreaterThan(DEFAULT_SM2_STATE.easiness);
+    });
+  });
 });
+

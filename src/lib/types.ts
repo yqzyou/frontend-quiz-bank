@@ -6,6 +6,14 @@ export type Status = 'reviewed' | 'draft' | 'needs-review';
 export type Language = 'zh' | 'en' | 'bilingual';
 export type SelfRating = 'again' | 'hard' | 'good' | 'easy';
 
+export type Sm2Rating = SelfRating;
+export interface Sm2State {
+  repetition: number;
+  interval: number;
+  easiness: number;
+  dueAt: number;
+}
+
 export interface Frontmatter {
   id: string;
   title: string;
