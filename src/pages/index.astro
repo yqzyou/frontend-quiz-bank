@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CategoryTabs from '../components/CategoryTabs.astro';
+import Dashboard from '../components/islands/Dashboard.tsx';
 import { loadAllQuestions } from '@lib/content-loader';
 
 const all = loadAllQuestions();
@@ -64,6 +65,12 @@ const accentMap: Record<string, string> = {
           <span aria-hidden="true">→</span>
         </a>
         <a
+          href="/review"
+          class="inline-flex items-center gap-2 rounded-xl border border-indigo-300 bg-indigo-50 px-5 py-3 text-sm font-medium text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900"
+        >
+          今日复习
+        </a>
+        <a
           href="https://github.com/yqzyou/frontend-quiz-bank"
           rel="noopener noreferrer"
           target="_blank"
@@ -92,6 +99,10 @@ const accentMap: Record<string, string> = {
         <div class="mt-1 text-xs uppercase tracking-wide text-slate-500">分类</div>
       </div>
     </div>
+  </section>
+
+  <section class="py-4">
+    <Dashboard client:load />
   </section>
 
   <section class="py-8">

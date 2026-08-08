@@ -144,5 +144,78 @@ describe('useProgressStore', () => {
       expect(entry!.easiness).toBeGreaterThan(DEFAULT_SM2_STATE.easiness);
     });
   });
+
+  describe('getStats', () => {
+    it('returns zero stats on a fresh store', () => {
+      const stats = useProgressStore.getState().getStats(1_000_000);
+      expect(stats).toEqual({
+        answered: 0,
+        correct: 0,
+        bookmarks: 0,
+        due: 0,
+        mastered: 0,
+        learning: 0,
+      });
+    });
+
+    it('counts answered, correct, bookmarks', () => {
+      useProgressStore.getState().recordAnswer('a', ['A'], true);
+      useProgressStore.getState().recordAnswer('b', ['B'], false);
+      useProgressStore.getState().toggleBookmark('c');
+      const stats = useProgressStore.getState().getStats(1_000_000);
+      expect(stats.answered).toBe(2);
+      expect(stats.correct).toBe(1);
+      expect(stats.bookmarks).toBe(1);
+    });
+
+    it('counts mastered as repetition >= 3', () => {
+      useProgressStore.getState().recordRating('a', 'good', 1);  // rep 1
+      useProgressStore.getState().recordRating('a', 'good', 2);  // rep 2
+      useProgressStore.getState().recordRating('a', 'good', 3);  // rep 3 -> mastered
+      useProgressStore.getState().recordRating('b', 'good', 4);  // rep 1
+      const stats = useProgressStore.getState().getStats(1_000_000);
+      expect(stats.mastered).toBe(1);
+      expect(stats.learning).toBe(1);
+    });
+
+    it('counts due from sm2 entries with dueAt <= now', () => {
+      useProgressStore.getState().recordRating('a', 'good', 0);     // due in 1 day
+      useProgressStore.getState().recordRating('b', 'again', 0);    // due immediately
+      const stats = useProgressStore.getState().getStats(0);
+      expect(stats.due).toBe(1);
+    });
+
+    it('counts learning = total sm2 entries - mastered', () => {
+      useProgressStore.getState().recordRating('a', 'good', 0); // rep 1 (learning)
+      useProgressStore.getState().recordRating('b', 'good', 0);
+      useProgressStore.getState().recordRating('b', 'good', 1);
+      useProgressStore.getState().recordRating('b', 'good', 2); // rep 3 (mastered)
+      const stats = useProgressStore.getState().getStats(0);
+      expect(stats.learning).toBe(1); // a
+      expect(stats.mastered).toBe(1); // b
+    });
+  });
+
+  describe('getMasteredCount', () => {
+    it('returns 0 when no SM-2 entries', () => {
+      expect(useProgressStore.getState().getMasteredCount()).toBe(0);
+    });
+
+    it('counts entries with repetition >= 3', () => {
+      useProgressStore.getState().recordRating('a', 'good', 1);
+      useProgressStore.getState().recordRating('a', 'good', 2);
+      useProgressStore.getState().recordRating('a', 'good', 3); // rep 3
+      useProgressStore.getState().recordRating('b', 'good', 1);
+      expect(useProgressStore.getState().getMasteredCount()).toBe(1);
+    });
+
+    it('does not count lapses (rep reset)', () => {
+      useProgressStore.getState().recordRating('a', 'good', 1);
+      useProgressStore.getState().recordRating('a', 'good', 2);
+      useProgressStore.getState().recordRating('a', 'good', 3);
+      useProgressStore.getState().recordRating('a', 'again', 4); // reset
+      expect(useProgressStore.getState().getMasteredCount()).toBe(0);
+    });
+  });
 });
 

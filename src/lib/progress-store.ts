@@ -24,7 +24,20 @@ export interface ProgressState {
   getAnsweredCount: () => number;
   getCorrectCount: () => number;
   getDueSlugs: (now?: number) => string[];
+  getMasteredCount: () => number;
+  getStats: (now?: number) => ProgressStats;
 }
+
+export interface ProgressStats {
+  answered: number;
+  correct: number;
+  bookmarks: number;
+  due: number;
+  mastered: number;
+  learning: number;
+}
+
+const MASTERY_REPETITION = 3;
 
 const initialState = {
   answered: {} as Record<string, AnswerRecord>,
@@ -103,6 +116,25 @@ export const useProgressStore = create<ProgressState>()(
         Object.entries(get().sm2)
           .filter(([, state]) => state.dueAt <= now)
           .map(([slug]) => slug),
+
+      getMasteredCount: () =>
+        Object.values(get().sm2).filter((s) => s.repetition >= MASTERY_REPETITION).length,
+
+      getStats: (now: number = Date.now()): ProgressStats => {
+        const state = get();
+        const sm2Entries = Object.values(state.sm2);
+        const mastered = sm2Entries.filter((s) => s.repetition >= MASTERY_REPETITION).length;
+        const learning = sm2Entries.length - mastered;
+        const due = sm2Entries.filter((s) => s.dueAt <= now).length;
+        return {
+          answered: Object.keys(state.answered).length,
+          correct: Object.values(state.answered).filter((r) => r.correct).length,
+          bookmarks: state.bookmarks.length,
+          due,
+          mastered,
+          learning,
+        };
+      },
     }),
     {
       name: 'frontend-quiz-bank/progress',
