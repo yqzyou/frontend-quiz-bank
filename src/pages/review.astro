@@ -14,7 +14,14 @@ const reviewedCount = reviewedSlugs.length;
 const draft = all.filter((q) => q.frontmatter.status === 'draft').length;
 ---
 
-<BaseLayout title="复习中心 · 前端题库" description="基于 SM-2 间隔复习算法的今日待办与学习统计。">
+<BaseLayout
+  title="复习中心 · 前端题库"
+  description="基于 SM-2 间隔复习算法的今日待办与学习统计。题库 / 进度 / 连续学习天数本地保存，不上传服务器。"
+  breadcrumb={[
+    { name: '首页', url: '/' },
+    { name: '复习中心', url: '/review' },
+  ]}
+>
   <nav aria-label="面包屑" class="mb-4 text-sm text-slate-500 dark:text-slate-400">
     <a href="/" class="hover:underline">首页</a>
     <span class="mx-2" aria-hidden="true">/</span>

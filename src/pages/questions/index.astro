@@ -43,7 +43,14 @@ const categoryStyle: Record<string, string> = {
 const total = filtered.length;
 ---
 
-<BaseLayout title={`题库 · 前端题库`} description={`共 ${all.length} 道题，按方向 / 状态 / 周次筛选。`}>
+<BaseLayout
+  title={`题库 · 前端题库`}
+  description={`共 ${all.length} 道高质量前端 / Web3 / 远程协作题目，按方向、状态、周次筛选。配套解析、参考链接、SM-2 间隔复习。`}
+  breadcrumb={[
+    { name: '首页', url: '/' },
+    { name: '题库', url: '/questions' },
+  ]}
+>
   <section class="py-4">
     <header class="mb-6">
       <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">题库</h1>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://frontend-quiz-bank.vercel.app/sitemap-index.xml

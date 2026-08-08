@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Roboto, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="55%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#4c1d95"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="50%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#e879f9"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#ffffff" fill-opacity="0.06"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#dots)"/>
+
+  <ellipse cx="980" cy="120" rx="320" ry="240" fill="url(#glow)"/>
+  <ellipse cx="180" cy="540" rx="260" ry="200" fill="url(#glow)" opacity="0.7"/>
+
+  <g transform="translate(80, 90)">
+    <rect x="0" y="0" width="56" height="56" rx="14" fill="url(#accent)"/>
+    <text x="14" y="38" font-size="30" font-weight="700" fill="#0f172a">Q</text>
+    <text x="76" y="36" font-size="22" font-weight="600" fill="#e2e8f0" letter-spacing="0.5">FRONTEND QUIZ BANK</text>
+  </g>
+
+  <g transform="translate(80, 240)">
+    <text font-size="86" font-weight="800" fill="#f8fafc" letter-spacing="-2">
+      <tspan x="0" y="0">从前端到</tspan>
+      <tspan x="0" y="110" fill="url(#accent)">Web3 / 远程</tspan>
+      <tspan x="0" y="220">的题库</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(80, 540)">
+    <rect x="0" y="0" width="220" height="44" rx="22" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.15"/>
+    <circle cx="22" cy="22" r="5" fill="#34d399"/>
+    <text x="40" y="29" font-size="16" font-weight="500" fill="#cbd5e1">W1 进行中 · 41 道题</text>
+  </g>
+
+  <text x="1120" y="582" font-size="16" font-weight="500" fill="#94a3b8" text-anchor="end">frontend-quiz-bank</text>
+</svg>

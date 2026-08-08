@@ -44,7 +44,19 @@ const typeLabel: Record<string, string> = {
 };
 ---
 
-<BaseLayout title={`${fm.title} · 前端题库`} description={full.question.slice(0, 160)}>
+<BaseLayout
+  title={`${fm.title} · 前端题库`}
+  description={full.question.slice(0, 160)}
+  type="article"
+  publishedTime={`${fm.last_updated}T00:00:00+08:00`}
+  modifiedTime={`${fm.last_updated}T00:00:00+08:00`}
+  breadcrumb={[
+    { name: '首页', url: '/' },
+    { name: '题库', url: '/questions' },
+    { name: fm.category, url: `/questions?category=${fm.category}` },
+    { name: fm.title, url: `/questions/${question.slug}` },
+  ]}
+>
   <nav aria-label="面包屑" class="mb-4 text-sm text-slate-500 dark:text-slate-400">
     <a href="/" class="hover:underline">首页</a>
     <span class="mx-2" aria-hidden="true">/</span>

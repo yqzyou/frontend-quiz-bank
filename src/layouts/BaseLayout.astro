@@ -3,21 +3,88 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 
+interface BreadcrumbItem {
+  name: string;
+  url: string;
+}
+
 interface Props {
   title?: string;
   description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  publishedTime?: string;
+  modifiedTime?: string;
+  breadcrumb?: BreadcrumbItem[];
+  noindex?: boolean;
 }
 
 const {
   title = '前端题库 · Frontend Quiz Bank',
   description = '面向「前端转 Web3 / 远程」程序员的开源题库。每周精选题目、自测进度、追踪复习。',
+  image = '/og-default.svg',
+  type = 'website',
+  publishedTime,
+  modifiedTime,
+  breadcrumb = [],
+  noindex = false,
 } = Astro.props;
 
+const siteOrigin = (Astro.site ?? new URL('https://frontend-quiz-bank.vercel.app'))
+  .toString()
+  .replace(/\/$/, '');
 const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).toString();
+const imageUrl = image.startsWith('http') ? image : `${siteOrigin}${image}`;
+const ogType = type === 'article' ? 'article' : 'website';
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: '前端题库',
+  alternateName: 'Frontend Quiz Bank',
+  url: siteOrigin,
+  description:
+    '面向「前端转 Web3 / 远程」程序员的开源题库。每周精选题目、自测进度、追踪复习。',
+  inLanguage: 'zh-CN',
+};
+
+const breadcrumbJsonLd =
+  breadcrumb.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: breadcrumb.map((item, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: item.name,
+          item: new URL(item.url, siteOrigin).toString(),
+        })),
+      }
+    : null;
+
+const articleJsonLd =
+  type === 'article'
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: title,
+        description,
+        image: imageUrl,
+        url: canonical,
+        datePublished: publishedTime,
+        dateModified: modifiedTime ?? publishedTime,
+        inLanguage: 'zh-CN',
+        publisher: {
+          '@type': 'Organization',
+          name: 'Frontend Quiz Bank',
+          url: siteOrigin,
+        },
+      }
+    : null;
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="system">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -26,12 +93,38 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).toString(
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+    <meta name="author" content="Frontend Quiz Bank" />
+
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:url" content={canonical} />
-    <meta name="twitter:card" content="summary" />
-    <html data-theme="system" />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:alt" content={title} />
+    <meta property="og:site_name" content="前端题库" />
+    <meta property="og:locale" content="zh_CN" />
+    {publishedTime && <meta property="article:published_time" content={publishedTime} />}
+    {modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
+
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(websiteJsonLd)} />
+    {
+      breadcrumbJsonLd && (
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbJsonLd)} />
+      )
+    }
+    {
+      articleJsonLd && (
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(articleJsonLd)} />
+      )
+    }
   </head>
   <body class="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
     <a
