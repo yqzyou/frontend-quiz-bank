@@ -1,0 +1,71 @@
+---
+id: remote-w1-q01
+title: "异步 vs 同步沟通：什么时候该等回复，什么时候该开会"
+category: remote
+sub_category: async-collaboration
+week: 1
+difficulty: basic
+type: choice
+tags: [remote, async, communication, decision]
+source: handwritten
+status: draft
+language: zh
+related: [remote-w1-q02, remote-w1-q04]
+last_updated: 2026-08-08
+---
+
+## 题目
+你在跨时区团队里，需要同事确认一个 API 设计方案。下列哪种沟通方式最符合"async-first"原则？
+
+## 选项
+A. 直接在 Slack @mention 同事："有空吗？想聊个事"
+B. 在 issue / PR 里写下完整背景、你倾向的方案、需要他确认的具体问题，然后等他下一个工作时段回复 ✓
+C. 立即 book 一个 30 分钟会议
+D. 私信他手机号发短信
+
+## 解析
+**异步优先（async-first）的核心**：
+
+1. **写下来**：背景、约束、选项、推荐、风险都写清楚，对方能在自己最有效率的时段消化
+2. **明确"需要什么"**：是给个 +1？还是 30 分钟深度讨论？还是技术风险审计？
+3. **不阻塞自己**：写完 issue 后可以继续做下一件事，不必等
+
+**反模式对比**：
+
+| 同步（@mention / 直接开会） | 异步（issue / PR / 长帖） |
+|------------------------------|---------------------------|
+| 打断对方 deep work | 对方在自己的时间内读 |
+| 上下文容易丢（聊天滚动） | 留下永久记录 |
+| 必须对方在线 | 跨时区友好 |
+| 决策过程不可追溯 | 后续可 link 引用 |
+
+**何时该转同步**：
+- 来回 ≥ 3 次异步评论仍未对齐 → 该开 30 分钟会
+- 涉及情感、冲突、解雇等敏感话题 → 必须视频
+- 紧急生产事故 → 立即拉群
+
+**典型 PR description 模板**：
+
+```markdown
+## What
+- Add SM-2 spaced repetition algorithm to /review
+
+## Why
+- Daily-mission + retention tracking; closes #42
+
+## Decisions
+- Used deterministic per-day shuffle (FNV-1a seed) to keep missions stable within a day
+- Persist version bumped to 2 to handle new fields
+
+## Risk
+- Existing users with v1 localStorage state will reset streak (acceptable, flagged in changelog)
+
+## Checklist
+- [x] 105 unit tests pass
+- [x] Build succeeds (33 pages)
+- [ ] Reviewer: please check `pickMission` seed correctness
+```
+
+## 参考
+- [GitLab Handbook: Async Communication](https://about.gitlab.com/company/culture/all-remote/asynchronous/)
+- [Doist: The Async Answer](https://async.doist.dev/)

@@ -1,0 +1,50 @@
+---
+id: remote-w1-q02
+title: "跨时区会议安排：4-eyes-overlap 与 follow-the-sun"
+category: remote
+sub_category: async-collaboration
+week: 1
+difficulty: intermediate
+type: multi-choice
+tags: [remote, timezones, meetings, async]
+source: handwritten
+status: draft
+language: zh
+related: [remote-w1-q01, remote-w1-q03]
+last_updated: 2026-08-08
+---
+
+## 题目
+团队分布：旧金山（UTC-8）、伦敦（UTC+0）、上海（UTC+8）。下列哪些做法能减少跨时区同步摩擦？（多选）
+
+## 选项
+A. 找出全员"工作时间交集 ≥ 2 小时"的时间段作为同步会议窗口 ✓
+B. 把每周一的全员 standup 改成"周一书面 update"，仅每两周开一次视频会 ✓
+C. 会议必须有人主动做记录，会后 24 小时内发到共享文档 ✓
+D. 让上海同事每周二、四晚上 22 点固定参加旧金山会议
+
+## 解析
+**4-eyes-overlap**：任何两个时区之间至少有 4 小时工作时间重合，足以完成 1-2 个深度同步。本例：
+- 旧金山 09:00–17:00 = 伦敦 17:00–01:00 = 上海 01:00–09:00
+- 伦敦 09:00–17:00 = 旧金山 01:00–09:00 = 上海 17:00–01:00
+- 上海 09:00–17:00 = 伦敦 01:00–09:00 = 旧金山 17:00–01:00
+
+三地同时醒着的工作交集 ≈ **几乎为零**。强行全员会必有一个人在凌晨/深夜。
+
+**Follow-the-sun**：把任务交接给"下一个上班的时区"。
+- 上海下班前把 PR 标记 `needs review`
+- 伦敦上班接手 review
+- 伦敦下班前 merge / push back
+- 旧金山继续
+
+**实操建议**：
+1. **核心工作时间（core hours）**：每人每天固定 4 小时"可被打扰"，团队约定一个所有人都能赶上的 1 小时窗口
+2. **书面优先**：80% 决策异步、20% 视频
+3. **会议录像 + 转录**：用 Otter / Tactiq 自动转录，未参会者 24h 内消化
+4. **轮换"被迁就"对象**：不要总是让亚洲同事熬夜；让美西同事偶尔早起
+
+**为什么 D 错？** 把同一组人固定在凌晨开会 → 半年内必然 burnout，离职率上升。健康做法是**轮换**会议时间，让"凌晨 / 清晨"的痛苦分散。
+
+## 参考
+- [Zapier: How to manage a global team](https://zapier.com/blog/manage-global-team/)
+- [GitLab: Meetings in an async world](https://about.gitlab.com/company/culture/all-remote/meetings/)

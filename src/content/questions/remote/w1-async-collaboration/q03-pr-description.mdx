@@ -1,0 +1,74 @@
+---
+id: remote-w1-q03
+title: "PR Description 文化：让 reviewer 在 5 分钟内进入状态"
+category: remote
+sub_category: async-collaboration
+week: 1
+difficulty: intermediate
+type: choice
+tags: [remote, code-review, pull-request, writing]
+source: handwritten
+status: draft
+language: zh
+related: [remote-w1-q01, remote-w1-q06]
+last_updated: 2026-08-08
+---
+
+## 题目
+下列哪种 PR description 最有助于异步 reviewer 快速给出有效反馈？
+
+## 选项
+A. "fix bug" + 200 行 diff，无任何说明
+B. "What/Why/Risk/How to test" 四段式说明 + 截图 / 录屏 + 关联 issue 链接 ✓
+C. 把所有思考过程都贴进去（30 屏的"我尝试了 A、又试了 B、最后选 C"）
+D. 只有截图，没有文字
+
+## 解析
+**模板：What / Why / How to test / Risk**：
+
+```markdown
+## What
+- Fix streak not incrementing when recordRating called between UTC midnight and user's local midnight
+
+## Why
+- Closes #128. Users in UTC+8 reported "answered at 7am local, streak still 0"
+- Root cause: toDateString(ms) used UTC date, but user's "today" is local
+- Decision: switch to user-local date key (Intl.DateTimeFormat), accept minor cross-TZ inconsistency in localStorage
+
+## How to test
+1. Set system TZ to Asia/Shanghai
+2. At 23:59 local, record an answer → streak = 1, lastStudyDate = today
+3. At 00:01 local (next day), record again → streak = 2
+4. Reload page → still streak = 2 ✓
+
+## Risk
+- Persisted streak uses UTC keys (v2); users will see one-time reset on first load after upgrade
+- Migration: bump persist version → state.migrate()
+
+## Screenshots
+- Before / after comparison: [link]
+
+## Linked
+- Closes #128
+- Depends on #142 (timezone refactor)
+```
+
+**为什么 5 分钟内能进入状态？**
+- reviewer 第一眼就看到 "what"，立刻有上下文
+- "why" 提供决策依据，避免被问"为什么不这样做？"
+- "how to test" 让 reviewer 自己能验证
+- "risk" 提前暴露你的疑虑 → reviewer 知道该重点看哪
+
+**反模式**：
+- "see commit" → reviewer 多一次跳转，可能错过细节
+- "WIP, will clean up later" → 永远不会 clean up，且 reviewer 不知道哪些是要审的
+- "trust me" → 异步工作最忌讳信任代替说明
+
+**额外加分**：
+- 视频 demo（Loom 30s）展示交互
+- `?w=1` 链接（去除空白 diff，只看实质变更）
+- 给具体 reviewer 分配任务而不是 `@everyone`
+
+## 参考
+- [Conventional Comments](https://conventionalcomments.org/)
+- [Stack Overflow: How to do code reviews](https://stackoverflow.blog/2019/09/30/how-to-make-good-code-reviews-better/)

@@ -1,0 +1,65 @@
+---
+id: remote-w1-q06
+title: "反馈文化：如何在 PR review 中给批评而不伤人"
+category: remote
+sub_category: async-collaboration
+week: 1
+difficulty: intermediate
+type: multi-choice
+tags: [remote, feedback, code-review, culture]
+source: handwritten
+status: draft
+language: zh
+related: [remote-w1-q03, remote-w1-q01]
+last_updated: 2026-08-08
+---
+
+## 题目
+你看到同事 PR 里有一段明显错误的安全代码。下列哪种 review comment 最专业？（多选都算正确）
+
+## 选项
+A. "issue: 这里用 `Math.random()` 当 token 生成器，可被预测。建议改用 `crypto.getRandomValues`。参考 [OWASP Cheat Sheet](https://...)。" ✓
+B. "praise: 单测覆盖率很赞，比上次的 PR 提升明显。"
+C. "question (non-blocking): 这个 timeout 用 30s 是基于什么权衡？我担心移动网络下会 false-fail。如果是经验值，建议加 magic-number 注释。"
+D. "thought: 这段逻辑我 4 个月前也写过类似，最后发现用 X 模式更好。考虑下？" ✓
+
+## 解析
+**Conventional Comments 协议**：在每条评论前加 `prefix:` 让对方立刻明白这是哪类反馈：
+
+| Prefix | 含义 | 是否 blocking |
+|--------|------|---------------|
+| `praise:` | 表扬 | 否 |
+| `nitpick:` | 极小偏好 | 否 |
+| `suggestion:` | 改进建议 | 否 |
+| `issue:` | 真实问题 | 是（默认） |
+| `question:` | 不解之处 | 看回复 |
+| `thought:` | 灵感 | 否 |
+| `chore:` | 流程问题 | 是 |
+
+**正确示范**：
+- A：`issue:` + 具体问题 + 推荐方案 + 参考 → 高质量，对方知道要改
+- D：`thought:` + 个人经验分享 → 不强制，但提供价值
+- C：`question (non-blocking)` + 自身顾虑 + 建议 → 给对方台阶
+
+**反模式**：
+- ❌ "这里写错了" → 没有 prefix、没有方案、没有理由
+- ❌ "你怎么想的？"
+- ❌ "fix this" → 命令式语气，对方不知道为什么
+
+**给批评的 5 个原则**：
+1. **对事不对人**："this code" 而非 "your code"
+2. **给数据 / 引用**：让证据说话
+3. **提供建议**：不仅指出问题，给出至少一个改进方向
+4. **分清 blocking 与 non-blocking**：用 `(non-blocking)` 后缀避免对方误以为必须改
+5. **多给 praise**：远程团队缺乏面对面正向反馈，写出来更珍贵
+
+**收到批评的反应**：
+- 不要立刻辩护
+- 先 +1 表示看到
+- 想清楚再回复或改代码
+- 同意的话：明说"good catch, fixing"
+- 不同意的话：解释 trade-off，请对方再评
+
+## 参考
+- [Conventional Comments](https://conventionalcomments.org/)
+- [Google Engineering Doc: Constructive Feedback](https://abseil.io/resources/swe-book/html/ch03.html)

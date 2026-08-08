@@ -1,0 +1,65 @@
+---
+id: remote-w1-q04
+title: "书面 Standup：每天 3 分钟同步，0 分钟开会"
+category: remote
+sub_category: async-collaboration
+week: 1
+difficulty: basic
+type: multi-choice
+tags: [remote, standup, async, daily-sync]
+source: handwritten
+status: draft
+language: zh
+related: [remote-w1-q01, remote-w1-q02]
+last_updated: 2026-08-08
+---
+
+## 题目
+下列哪些是高质量"书面 standup"的元素？（多选）
+
+## 选项
+A. Yesterday: 完成的具体事项 + 状态（done / in-progress / blocked） ✓
+B. Today: 计划做的 1-3 件事 ✓
+C. Blockers: 卡住你的具体原因 + 已尝试的解法 + 需要谁的帮助 ✓
+D. 心情指数 / 个人琐事 / 天气
+
+## 解析
+**3 段式 standup 模板**：
+
+```markdown
+**Yesterday**
+- ✅ Shipped streak + dailyMission (commit aaac0e3)
+- 🚧 ReviewQueue island — blocked on Reviewer's feedback on bucket thresholds
+- ❌ Did NOT start wallet integration (moved to next sprint)
+
+**Today**
+- Address ReviewQueue feedback (1-2h)
+- Start Task 17: remote/w1 content (4-6h)
+
+**Blockers**
+- Need @yasser to confirm: should "未学习" bucket show ALL unrated slugs, or only first 12?
+  - Already checked: PR #56 has 12-cap discussion
+  - Need decision before EOD so I can land before weekend
+```
+
+**为什么这个写法有效？**
+- 用 ✅🚧❌ emoji 让 reviewer 1 秒看清状态
+- Blockers 给出**具体问题 + 已做的功课 + 期望**，让别人能直接回答
+- 时间预算透明 → 团队知道你的剩余带宽
+
+**为什么 D 通常不放 standup？**
+- standup 是工作信息流，个人琐事进 #random / #watercooler
+- 但在远程团队，刻意保留"watercooler"频道是必要的——只是不要混在 standup 里
+
+**反模式**：
+- "Yesterday: worked on stuff"
+- "Today: continue working"
+- "Blockers: none"（90% 时候其实是有的，但你没想清楚）
+
+**何时换同步 standup？**
+- 团队 < 5 人且时区重叠 ≥ 4h → 视频 standup 仍有价值（社交功能）
+- 团队 ≥ 10 人 → 强烈异步，避免"轮流说话 30 秒"
+
+## 参考
+- [Pattern: Daily Written Standup](https://www.mindtheproduct.com/daily-stand-ups-are-the-status-meetings-of-agile/)
+- [Doist Twist: Asynchronous standups](https://twist.com/asynchronous-standup-meetings)

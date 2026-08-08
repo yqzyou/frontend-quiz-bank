@@ -1,0 +1,84 @@
+---
+id: remote-w1-q05
+title: "英文邮件结构：subject / BLUF / sign-off 三段法"
+category: remote
+sub_category: async-collaboration
+week: 1
+difficulty: intermediate
+type: choice
+tags: [remote, english, email, communication]
+source: handwritten
+status: draft
+language: zh
+related: [remote-w1-q01, remote-w1-q03]
+last_updated: 2026-08-08
+---
+
+## 题目
+你要给一个从未谋面的 client 发英文邮件请求确认技术方案。下列哪种开头最高效？
+
+## 选项
+A. "Hi John, I hope this email finds you well. As you may know, our team has been working on..."
+B. "Hi John, **TL;DR: we recommend Postgres over MongoDB for the user-table workload. Need your +1 by Fri to land it in this sprint.** Details below." ✓
+C. "Dear Mr. Smith, I am writing to you regarding the matter of..."
+D. "Hey, quick question — what do you think?"
+
+## 解析
+**BLUF 原则：Bottom Line Up Front**（结论先行）
+
+远程异步沟通里，收件人第一眼要看到：
+1. 这是什么事？
+2. 我需要做什么？
+3. 截止时间是什么时候？
+
+之后再展开背景、备选、风险。
+
+**英文邮件结构**：
+
+```
+Subject: [Action needed] DB choice for user table — need +1 by Fri Aug 12
+
+Hi John,
+
+BLUF / TL;DR: We recommend Postgres. Need your +1 by Friday EOD
+Pacific to keep sprint on track.
+
+Context (3 paragraphs max):
+- We're shipping the user-profile feature in week 8
+- Original spec said MongoDB, but our read patterns are relational
+- Benchmarks attached: Postgres 4× faster on the 3 hot queries
+
+Options considered:
+A. MongoDB (status quo) — flexible schema, but joins are slow
+B. Postgres (recommend) — ACID, simpler queries, our team has ops experience
+C. SQLite — too small for the write volume
+
+Risk if we don't decide by Fri:
+- Sprint slips 1 week; cascading impact on Q3 roadmap
+
+Reply with: "go Postgres" / "go Mongo" / "let's chat — I'll book 15min"
+
+Thanks,
+Yasser
+```
+
+**为什么 B 最好？**
+- 收件人看完 TL;DR 就能 +1 / 反对 / 提议聊
+- 不需要读完 5 段才知道该做什么
+- 时间压力（"by Fri EOD"）明确
+
+**为什么 A 是反模式？**
+- "I hope this email finds you well" 是中式套话直译，英文母语者觉得啰嗦
+- 5 句开场后才进主题 → reviewer 失去耐心
+
+**为什么 C 错？**
+- "Dear Mr. Smith" 太正式，除非法律函
+- "the matter of" 是中英直译，英美人不这么说
+
+**为什么 D 错？**
+- 没有上下文，对方需要追问 → 一来一回浪费时间
+- "Hey" 在正式客户场景显得过于随意
+
+## 参考
+- [BLUF: Bottom Line Up Front](https://www.mindtools.com/pages/article/newCS_85B.htm)
+- [Grammarly: Business Email Salutations](https://www.grammarly.com/blog/business-communication/email-salutations/)

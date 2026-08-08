@@ -1,0 +1,83 @@
+---
+id: remote-w1-q07
+title: "Writing-First Culture：为什么文档是远程团队的第一公民"
+category: remote
+sub_category: async-collaboration
+week: 1
+difficulty: intermediate
+type: choice
+tags: [remote, documentation, writing, decision-record]
+source: handwritten
+status: draft
+language: zh
+related: [remote-w1-q01, remote-w1-q03]
+last_updated: 2026-08-08
+---
+
+## 题目
+团队遇到一个反复出现的架构争论："要不要把 React 换成 Svelte"。最符合"writing-first"的处理方式是？
+
+## 选项
+A. 在 Slack 里开个 thread，让所有人发表看法
+B. 写一份 Decision Record (ADR)，包含 context / options / decision / consequences，留 PR review ✓
+C. 找 CEO / Tech Lead 私聊决定
+D. 拖延决定直到下次季度复盘
+
+## 解析
+**Writing-first 原则**：所有重要决策必须有书面记录，且记录的格式让"半年后加入的新人"也能秒懂。
+
+**ADR (Architecture Decision Record) 模板**：
+
+```markdown
+# ADR-007: Stay on React for the next 12 months
+
+Date: 2026-08-08
+Status: Accepted
+Deciders: Yasser, Maya, Tom
+
+## Context
+- 200+ React components in production
+- 3-week sprint cadence; team of 4
+- Two teammates proposed migrating to Svelte for bundle size + ergonomics
+- Migration cost estimate: 6 engineer-months
+
+## Options considered
+
+### A. Migrate to Svelte (rejected)
+- Pros: 30% smaller bundle, simpler reactivity
+- Cons: 6mo migration; retrain 4 engineers; lose React ecosystem (Testing Library, React DevTools)
+
+### B. Stay on React + adopt React Compiler (accepted)
+- Pros: 0 migration cost; auto-memoization covers 80% of perf concerns
+- Cons: bundle still ~150kb gzipped; some library churn
+
+### C. Hybrid (Svelte for new marketing pages)
+- Pros: low-risk pilot
+- Cons: dual tooling maintenance, team split
+
+## Decision
+Option B. Revisit when:
+- React 20 launches (Q1 2027) AND Compiler fails to meet bundle target
+- OR team size doubles AND can dedicate migration squad
+
+## Consequences
+- Update onboarding docs to mention React Compiler
+- Schedule Compiler enablement spike in W34
+- Create tracking issue for bundle-size regression test
+```
+
+**为什么选 B？**
+- 决策可追溯：半年后新人问"为啥用 React" → 链接 ADR-007
+- 反对者被听见：option A 列出他们的论点，不是被无视
+- 触发条件明确：何时 revisit 已经写好，避免"无限争论"
+
+**为什么 A 错？** Slack thread 不可搜索、不可链接、3 个月后归档丢失。同样争论会反复出现。
+
+**为什么 C 错？** 私下决策破坏信任；其他工程师会反对"为啥没我"。
+
+**为什么 D 错？** 拖延 = 真正的决定（保持现状），但没有记录 → 半年后大家仍以为"在讨论换 Svelte"，浪费精力。
+
+## 参考
+- [Michael Nygard: ADRs](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
+- [GitLab: Handbook first](https://about.gitblab.com/company/culture/all-remote/handbook-first/)
+- [Basecamp: Shape Up](https://basecamp.com/shapeup)
