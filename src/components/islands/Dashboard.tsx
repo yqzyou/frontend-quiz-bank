@@ -4,7 +4,7 @@ interface StatTileProps {
   label: string;
   value: number | string;
   hint?: string;
-  accent?: 'indigo' | 'emerald' | 'amber' | 'rose' | 'slate';
+  accent?: 'indigo' | 'emerald' | 'amber' | 'rose' | 'slate' | 'violet';
 }
 
 const ACCENT_CLASSES: Record<NonNullable<StatTileProps['accent']>, string> = {
@@ -13,6 +13,7 @@ const ACCENT_CLASSES: Record<NonNullable<StatTileProps['accent']>, string> = {
   amber: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300',
   rose: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300',
   slate: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  violet: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-300',
 };
 
 function StatTile({ label, value, hint, accent = 'slate' }: StatTileProps) {
@@ -43,9 +44,11 @@ export function Dashboard() {
     const masteredCount = Object.values(s.sm2).filter((entry) => entry.repetition >= 3).length;
     return total - masteredCount;
   });
+  const streak = useProgressStore((s) => s.streak.current);
 
-  const stats = { answered, correct, bookmarks, due, mastered, learning };
+  const stats = { answered, correct, bookmarks, due, mastered, learning, streak };
   const accuracy = stats.answered === 0 ? null : Math.round((stats.correct / stats.answered) * 100);
+  const streakHint = stats.streak === 0 ? '今日开始连胜' : `已坚持 ${stats.streak} 天`;
 
   return (
     <section
@@ -67,7 +70,7 @@ export function Dashboard() {
         </a>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         <StatTile
           label="今日待复习"
           value={stats.due}
@@ -91,6 +94,12 @@ export function Dashboard() {
           value={stats.learning}
           hint="尚未达掌握线"
           accent="amber"
+        />
+        <StatTile
+          label="连续学习"
+          value={stats.streak}
+          hint={streakHint}
+          accent="violet"
         />
         <StatTile
           label="收藏"

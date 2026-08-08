@@ -55,4 +55,18 @@ describe('<Dashboard />', () => {
     const bookmarkTile = screen.getByText('收藏').closest('div')?.parentElement;
     expect(bookmarkTile?.querySelector('.text-2xl')?.textContent).toBe('2');
   });
+
+  it('shows current streak count', () => {
+    useProgressStore.getState().recordAnswer('a', ['A'], true, 1_700_000_000_000);
+    useProgressStore.getState().recordAnswer('b', ['B'], true, 1_700_000_000_000 + 86_400_000);
+    render(<Dashboard />);
+    const streakTile = screen.getByText('连续学习').closest('div')?.parentElement;
+    expect(streakTile?.querySelector('.text-2xl')?.textContent).toBe('2');
+  });
+
+  it('shows streak hint that encourages daily study when streak is 0', () => {
+    render(<Dashboard />);
+    const streakTile = screen.getByText('连续学习').closest('div')?.parentElement;
+    expect(streakTile?.textContent).toMatch(/今日开/);
+  });
 });

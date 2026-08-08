@@ -1,12 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Dashboard from '../components/islands/Dashboard.tsx';
+import DailyMission from '../components/islands/DailyMission.tsx';
 import ReviewQueue from '../components/islands/ReviewQueue.tsx';
 import { loadAllQuestions } from '@lib/content-loader';
 
 const all = loadAllQuestions();
 const total = all.length;
-const reviewed = all.filter((q) => q.frontmatter.status === 'reviewed').length;
+const reviewedSlugs = all
+  .filter((q) => q.frontmatter.status === 'reviewed')
+  .map((q) => q.slug);
+const reviewedCount = reviewedSlugs.length;
 const draft = all.filter((q) => q.frontmatter.status === 'draft').length;
 ---
 
@@ -20,12 +24,13 @@ const draft = all.filter((q) => q.frontmatter.status === 'draft').length;
   <header class="mb-6">
     <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">复习中心</h1>
     <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-      SM-2 间隔复习 · 共 {total} 道题（已审校 {reviewed} · 草稿 {draft}）· 进度本地保存，不上传服务器
+      SM-2 间隔复习 · 共 {total} 道题（已审校 {reviewedCount} · 草稿 {draft}）· 进度本地保存，不上传服务器
     </p>
   </header>
 
-  <div class="mb-6">
+  <div class="mb-6 space-y-6">
     <Dashboard client:load />
+    <DailyMission client:load allSlugs={reviewedSlugs} missionSize={3} />
   </div>
 
   <ReviewQueue client:load allSlugs={all.map((q) => q.slug)} />

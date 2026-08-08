@@ -2,10 +2,12 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CategoryTabs from '../components/CategoryTabs.astro';
 import Dashboard from '../components/islands/Dashboard.tsx';
+import DailyMission from '../components/islands/DailyMission.tsx';
 import { loadAllQuestions } from '@lib/content-loader';
 
 const all = loadAllQuestions();
 const reviewed = all.filter((q) => q.frontmatter.status === 'reviewed');
+const reviewedSlugs = reviewed.map((q) => q.slug);
 const draft = all.filter((q) => q.frontmatter.status === 'draft');
 
 const categories = [
@@ -101,8 +103,9 @@ const accentMap: Record<string, string> = {
     </div>
   </section>
 
-  <section class="py-4">
+  <section class="space-y-6 py-4">
     <Dashboard client:load />
+    <DailyMission client:load allSlugs={reviewedSlugs} missionSize={3} />
   </section>
 
   <section class="py-8">
