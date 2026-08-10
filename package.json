@@ -1,7 +1,31 @@
 {
   "name": "frontend-quiz-bank",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "面向「前端转 Web3 / 远程协作」程序员的开源题库。SM-2 间隔复习 · 每日任务 · 即时搜索 · 离线进度。",
+  "license": "MIT",
+  "author": "yasser",
+  "homepage": "https://github.com/yasser/frontend-quiz-bank",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yasser/frontend-quiz-bank.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yasser/frontend-quiz-bank/issues"
+  },
+  "keywords": [
+    "frontend",
+    "web3",
+    "remote-work",
+    "interview-questions",
+    "quiz",
+    "spaced-repetition",
+    "sm2",
+    "astro",
+    "react",
+    "typescript",
+    "tailwindcss"
+  ],
   "engines": {
     "node": ">=22.12.0"
   },
