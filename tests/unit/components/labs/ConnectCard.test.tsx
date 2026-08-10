@@ -44,7 +44,7 @@ describe('<ConnectCard />', () => {
     expect(screen.getByText(/连接钱包/)).toBeInTheDocument();
   });
 
-  it('shows "no wallet" fallback when no connectors', async () => {
+  it('does not render no-wallet fallback when mock connector is present', async () => {
     // 直接断言：mock connector 永远存在，所以这里只测 fallback 文案分支
     // 当 connectors.length === 0 时应显示安装链接
     // 通过渲染一个不依赖 wagmi 的极简版本来验证 fallback 渲染
