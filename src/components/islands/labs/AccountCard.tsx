@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAccount, useBalance, useChainId } from 'wagmi';
 import { mainnet, sepolia } from 'viem/chains';
-import type { Chain } from 'viem';
+import { formatUnits, type Chain } from 'viem';
 import { TopicBadge } from './TopicBadge';
 
 const SUPPORTED_CHAINS: Record<number, Chain> = {
@@ -95,7 +95,10 @@ export function AccountCard() {
               </span>
             ) : (
               <span className="font-mono text-slate-700 dark:text-slate-200">
-                {balance?.formatted ?? '0'} {balance?.symbol ?? 'ETH'}
+                {balance
+                  ? formatUnits(balance.value, balance.decimals)
+                  : '0'}{' '}
+                {balance?.symbol ?? 'ETH'}
               </span>
             )}
           </dd>

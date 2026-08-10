@@ -4,7 +4,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithWagmi } from './helpers';
 import { AccountCard } from '@islands/labs/AccountCard';
-import { useAccount, useConnect } from 'wagmi';
+import { useConnect } from 'wagmi';
 
 function ConnectHelper() {
   const { connect, connectors } = useConnect();

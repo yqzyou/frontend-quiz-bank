@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import WalletLabApp from '../../components/islands/labs/WalletLabApp.tsx';
+---
+
+<BaseLayout
+  title="钱包连接 Lab · 前端题库"
+  description="动手实验室：用 wagmi v2 + viem 连接 MetaMask、查看账户/链/余额、断开连接。对应 web3 w1 题目 q01/q05/q08/q11/q12/q13/q14。"
+  breadcrumb={[
+    { name: '首页', url: '/' },
+    { name: '实验室', url: '/labs/wallet-connect' },
+  ]}
+>
+  <section class="py-4">
+    <nav aria-label="面包屑" class="mb-3 text-sm text-slate-500 dark:text-slate-400">
+      <a href="/" class="hover:underline">首页</a>
+      <span class="mx-2" aria-hidden="true">/</span>
+      <span class="text-slate-700 dark:text-slate-300">实验室 · 钱包连接</span>
+    </nav>
+
+    <header class="mb-6">
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+        钱包连接 Lab
+      </h1>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        动手演示 wagmi v2 + viem 的连接 / 状态 / 断开闭环。点击右上的 🔗 徽章可跳回对应题目。
+      </p>
+    </header>
+
+    <WalletLabApp client:load />
+  </section>
+</BaseLayout>

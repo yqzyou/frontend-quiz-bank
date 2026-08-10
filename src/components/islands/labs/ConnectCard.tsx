@@ -79,7 +79,7 @@ export function ConnectCard() {
           aria-live="polite"
           className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300"
         >
-          ❌ 连接失败：{error.message}（code {error.code ?? '?'})。可重试。
+          ❌ 连接失败：{error.name} — {error.message}。可重试。
         </p>
       )}
     </Card>
