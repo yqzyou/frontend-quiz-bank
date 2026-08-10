@@ -1,4 +1,16 @@
 // @vitest-environment happy-dom
+/**
+ * TopicBadge 测试约束（控制器决议，code-quality review 折衷）：
+ *
+ * 1. **IIFE 模块级缓存**：`TopicBadge.tsx` 的 `ID_TO_SLUG` 是模块作用域 IIFE，
+ *    首次 import 时同步执行 `loadAllQuestions()` 构建只读 Map。
+ *    本测试文件**不 mock `loadAllQuestions`**（用真实 content 目录）。
+ *    如未来需 mock，必须先把 IIFE 重构成惰性函数（lazy + cache + reset）。
+ *
+ * 2. **fixture 同步**：`web3-w1-q11` 必须与
+ *    `src/content/questions/web3/w1-dapp-frontend/q11-wagmi-useaccount.mdx`
+ *    的 `frontmatter.id` 保持一致。若该 mdx 被删除/改名，测试会断。
+ */
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TopicBadge } from '@islands/labs/TopicBadge';
